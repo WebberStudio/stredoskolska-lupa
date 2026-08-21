@@ -11,8 +11,8 @@
 
 /* ---------- Nastavení webu ---------- */
 const NASTAVENI = {
-  // TODO: doplnit skutečný kontaktní e-mail projektu
-  kontaktEmail: "info@stredoskolskalupa.cz",
+  kontaktEmail: "michaela@medialniworkshop.cz",
+  kontaktTelefon: "+420 774 928 948",
 
   // Odkazy na sociální sítě — prázdný řetězec "" = odkaz se na webu zatím nezobrazí
   socialniSite: {

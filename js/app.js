@@ -85,6 +85,11 @@
       mailA.href = "mailto:" + NASTAVENI.kontaktEmail;
       mailA.textContent = NASTAVENI.kontaktEmail;
     }
+    const telA = $("[data-kontakt-telefon]");
+    if (telA && NASTAVENI.kontaktTelefon) {
+      telA.href = "tel:" + NASTAVENI.kontaktTelefon.replace(/\s+/g, "");
+      telA.textContent = NASTAVENI.kontaktTelefon;
+    }
     const box = $("[data-kanaly]");
     if (!box) return;
     const S = NASTAVENI.socialniSite || {};
