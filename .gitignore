@@ -1,0 +1,8 @@
+# Administrace je lokální nástroj — na veřejný hosting nepatří
+admin.html
+js/admin.js
+css/admin.css
+
+# systémové soubory
+Thumbs.db
+.DS_Store

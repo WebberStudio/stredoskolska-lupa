@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Školy a epizody · Středoškolská lupa</title>
+  <meta name="description" content="Katalog středních škol a podcastových epizod. Filtruj podle kraje, města a typu školy — gymnázium, SOŠ, SOU — nebo hledej na mapě.">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="cs_CZ">
+  <meta property="og:title" content="Školy a epizody · Středoškolská lupa">
+  <meta property="og:description" content="Katalog středních škol a podcastových epizod. Filtruj podle kraje, města a typu školy.">
+  <meta property="og:image" content="assets/og.png">
+  <link rel="icon" type="image/png" href="assets/favicon.png">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body data-page="skoly">
+<a class="skip" href="#obsah">Přeskočit na obsah</a>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="index.html">
+      <img class="brand-mark" src="assets/logo.png" alt="" width="34" height="34">
+      <span class="brand-name">Středoškolská lupa</span>
+    </a>
+    <button class="nav-toggle" aria-expanded="false" aria-controls="hlavni-menu" aria-label="Otevřít menu">≡</button>
+    <nav class="main-nav" id="hlavni-menu" aria-label="Hlavní navigace">
+      <a href="skoly.html">Školy</a>
+      <a href="skoly.html#mapa">Mapa</a>
+      <a href="blog.html">Blog</a>
+      <a href="o-projektu.html">O projektu</a>
+      <a class="btn" href="pro-skoly.html">Chci promo video</a>
+    </nav>
+  </div>
+</header>
+
+<main id="obsah">
+
+  <section class="hero hero--page">
+    <div class="wrap">
+      <p class="eyebrow">Katalog</p>
+      <h1 class="h-disp">Školy &amp; epizody</h1>
+      <p class="hero-sub">Klikni na kraj na mapě a projdi si jeho školy — nebo filtruj podle typu školy a hledej podle názvu či města.</p>
+    </div>
+  </section>
+
+  <!-- MAPA — srdce katalogu -->
+  <section class="sec sec--cream" id="mapa">
+    <div class="wrap">
+      <div class="kraj-layout">
+        <div class="map-frame">
+          <div class="map-canvas" id="mapa-katalog"></div>
+        </div>
+        <aside class="kraj-panel" id="kraj-panel" aria-live="polite" aria-label="Přehled vybraného kraje">
+          <noscript><p style="padding:20px">Pro zobrazení mapy zapněte prosím JavaScript.</p></noscript>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- KATALOG -->
+  <section class="sec sec--paper" id="vysledky">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2 class="h-disp">Všechny školy</h2>
+      </div>
+      <form class="filterbar" id="filtr-form" role="search" aria-label="Filtrování škol">
+        <div class="search-mini">
+          <input type="search" id="filtr-q" placeholder="Škola, město, ředitel…" autocomplete="off" aria-label="Hledat školu">
+          <button type="submit" aria-label="Hledat">⌕</button>
+        </div>
+        <select class="select-kraj" id="filtr-kraj" aria-label="Filtr podle kraje"></select>
+        <div class="typ-chipy" id="typ-chipy"></div>
+        <button type="button" class="chip" id="filtr-reset">✕ Zrušit filtry</button>
+      </form>
+
+      <p class="result-count" id="pocet-vysledku" aria-live="polite"></p>
+
+      <div class="grid grid--3" id="katalog-grid">
+        <noscript><p>Pro zobrazení katalogu zapněte prosím JavaScript.</p></noscript>
+      </div>
+
+      <div class="empty-state" id="prazdny-stav" hidden>
+        <strong>Nic jsme nenašli</strong>
+        <p>Zkuste jiný výraz, nebo zrušte filtry. Škol každý měsíc přibývá — možná tu ta vaše brzy bude.</p>
+        <button type="button" class="btn btn--ghost" onclick="document.getElementById('filtr-reset').click()">Zrušit filtry</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="band--navy">
+    <div class="wrap">
+      <div class="band-text">
+        <span class="eyebrow">Vaše škola tu chybí?</span>
+        <h2 class="h-disp">Přidejte se<br>do databáze</h2>
+        <p>Natočíme vám promo video, uspořádáme workshop pro studenty a s ředitelem či ředitelkou natočíme podcast u nás ve studiu.</p>
+      </div>
+      <div class="band-actions">
+        <a class="btn" href="pro-skoly.html#poptavka">Nezávazně poptat</a>
+        <a class="btn btn--ghost-dark" href="pro-skoly.html">Jak to probíhá</a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-main">
+      <div class="footer-brand">
+        <a class="brand" href="index.html">
+          <img class="brand-mark" src="assets/logo.png" alt="" width="34" height="34">
+          <span class="brand-name">Středoškolská lupa</span>
+        </a>
+        <p>Databáze středoškolských podcastů. Poslechni si ředitele školy, na kterou se chystáš.</p>
+        <p class="footer-mail"><a data-kontakt-email href="#">e-mail doplníme</a></p>
+      </div>
+      <div class="footer-col">
+        <h3>Prozkoumat</h3>
+        <ul>
+          <li><a href="skoly.html">Školy &amp; epizody</a></li>
+          <li><a href="skoly.html#mapa">Mapa škol</a></li>
+          <li><a href="blog.html">Blog</a></li>
+          <li><a href="o-projektu.html">O projektu</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h3>Pro školy</h3>
+        <ul>
+          <li><a href="pro-skoly.html">Jak to probíhá</a></li>
+          <li><a href="pro-skoly.html#poptavka">Nezávazná poptávka</a></li>
+          <li><a href="https://www.medialniworkshop.cz" target="_blank" rel="noopener">Mediální workshop ↗</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h3>Sledujte nás</h3>
+        <ul data-kanaly></ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 STŘEDOŠKOLSKÁ LUPA · MEDIÁLNÍ WORKSHOP s.r.o.</span>
+      <span>SPOTIFY · APPLE · YOUTUBE · IG · TIKTOK</span>
+    </div>
+  </div>
+</footer>
+
+<script src="js/data.js"></script>
+<script src="js/mapa-cr.js"></script>
+<script src="js/obce-cr.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

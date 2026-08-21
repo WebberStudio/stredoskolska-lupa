@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Středoškolská lupa — databáze středoškolských podcastů</title>
+  <meta name="description" content="Poslechni si ředitele školy, na kterou se chystáš. Rozhovory s řediteli a ředitelkami středních škol z celé ČR — hledej podle kraje, města i typu školy.">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="cs_CZ">
+  <meta property="og:title" content="Středoškolská lupa — databáze středoškolských podcastů">
+  <meta property="og:description" content="Poslechni si ředitele školy, na kterou se chystáš. Rozhovory s řediteli středních škol z celé ČR.">
+  <meta property="og:image" content="assets/og.png">
+  <link rel="icon" type="image/png" href="assets/favicon.png">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body data-page="index">
+<a class="skip" href="#obsah">Přeskočit na obsah</a>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="index.html">
+      <img class="brand-mark" src="assets/logo.png" alt="" width="34" height="34">
+      <span class="brand-name">Středoškolská lupa</span>
+    </a>
+    <button class="nav-toggle" aria-expanded="false" aria-controls="hlavni-menu" aria-label="Otevřít menu">≡</button>
+    <nav class="main-nav" id="hlavni-menu" aria-label="Hlavní navigace">
+      <a href="skoly.html">Školy</a>
+      <a href="skoly.html#mapa">Mapa</a>
+      <a href="blog.html">Blog</a>
+      <a href="o-projektu.html">O projektu</a>
+      <a class="btn" href="pro-skoly.html">Chci promo video</a>
+    </nav>
+  </div>
+</header>
+
+<main id="obsah">
+
+  <!-- HERO -->
+  <section class="hero hero--home">
+    <div class="wrap">
+      <div class="hero-mriz">
+        <div class="hero-text">
+          <p class="eyebrow">Databáze středoškolských podcastů</p>
+          <h1 class="hero-title">
+            <span class="t-line">Středoškolská</span>
+            <span class="t-line t-accent">Lupa</span>
+          </h1>
+          <p class="hero-sub">Poslechni si ředitele školy, na kterou se chystáš. Jedna otázka za druhou, bez marketingových frází.</p>
+          <form class="hero-search" id="hero-hledani" role="search" aria-label="Hledání školy">
+            <input type="search" id="hero-q" name="q" placeholder="Hledej školu, město nebo kraj…" autocomplete="off">
+            <button type="submit">Hledat</button>
+          </form>
+          <div class="hero-stats" aria-label="Statistiky databáze">
+            <span><span data-stat="skoly">–</span> ŠKOL</span>
+            <span><span data-stat="epizody">–</span> EPIZOD</span>
+            <span><span data-stat="kraje">–</span> KRAJŮ</span>
+          </div>
+        </div>
+        <img class="hero-logo-velke" src="assets/logo.png" alt="Logo Středoškolská lupa — podcast pro studenty a školy" width="420" height="430">
+      </div>
+    </div>
+  </section>
+
+  <!-- BĚŽÍCÍ PRUH -->
+  <div class="marquee" aria-hidden="true"><div class="marquee-track"></div></div>
+
+  <!-- MAPA ŠKOL -->
+  <section class="sec sec--cream">
+    <div class="wrap">
+      <div class="map-split reveal">
+        <div class="map-side">
+          <h2 class="h-disp">Mapa<br>škol</h2>
+          <p>Čísla ukazují, kolik škol už v kraji máme. Klikni na svůj kraj a projdi si jeho školy a epizody.</p>
+          <a class="btn btn--ghost" href="skoly.html#mapa">Otevřít celý katalog</a>
+        </div>
+        <div class="map-box">
+          <div class="map-canvas" id="mapa-teaser"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- NEJNOVĚJŠÍ EPIZODY -->
+  <section class="sec sec--cream">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2 class="h-disp">Nejnovější<br>epizody</h2>
+        <a class="link-arrow" href="skoly.html">všechny epizody →</a>
+      </div>
+      <div class="grid grid--3" id="nejnovejsi-grid">
+        <noscript><p>Pro zobrazení epizod zapněte prosím JavaScript.</p></noscript>
+      </div>
+    </div>
+  </section>
+
+  <!-- BLOG -->
+  <section class="sec sec--paper">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2 class="h-disp">Novinky<br>&amp; blog</h2>
+        <a class="link-arrow" href="blog.html">všechny články →</a>
+      </div>
+      <div class="blog-vypich" id="blog-teaser">
+        <noscript><p>Pro zobrazení článků zapněte prosím JavaScript.</p></noscript>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRO ŠKOLY -->
+  <section class="band--navy">
+    <div class="wrap">
+      <div class="band-text">
+        <span class="eyebrow">Pro školy</span>
+        <h2 class="h-disp">Promo video<br>vaší školy na míru</h2>
+        <p>Přijedeme k vám, uděláme workshop pro studenty a společně natočíme promo video o škole. Podcast s ředitelem točíme u nás ve studiu.</p>
+      </div>
+      <div class="band-actions">
+        <a class="btn" href="pro-skoly.html#poptavka">Nezávazně poptat</a>
+        <a class="btn btn--ghost-dark" href="pro-skoly.html">Jak to probíhá</a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-main">
+      <div class="footer-brand">
+        <a class="brand" href="index.html">
+          <img class="brand-mark" src="assets/logo.png" alt="" width="34" height="34">
+          <span class="brand-name">Středoškolská lupa</span>
+        </a>
+        <p>Databáze středoškolských podcastů. Poslechni si ředitele školy, na kterou se chystáš.</p>
+        <p class="footer-mail"><a data-kontakt-email href="#">e-mail doplníme</a></p>
+      </div>
+      <div class="footer-col">
+        <h3>Prozkoumat</h3>
+        <ul>
+          <li><a href="skoly.html">Školy &amp; epizody</a></li>
+          <li><a href="skoly.html#mapa">Mapa škol</a></li>
+          <li><a href="blog.html">Blog</a></li>
+          <li><a href="o-projektu.html">O projektu</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h3>Pro školy</h3>
+        <ul>
+          <li><a href="pro-skoly.html">Jak to probíhá</a></li>
+          <li><a href="pro-skoly.html#poptavka">Nezávazná poptávka</a></li>
+          <li><a href="https://www.medialniworkshop.cz" target="_blank" rel="noopener">Mediální workshop ↗</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h3>Sledujte nás</h3>
+        <ul data-kanaly></ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 STŘEDOŠKOLSKÁ LUPA · MEDIÁLNÍ WORKSHOP s.r.o.</span>
+      <span>SPOTIFY · APPLE · YOUTUBE · IG · TIKTOK</span>
+    </div>
+  </div>
+</footer>
+
+<script src="js/data.js"></script>
+<script src="js/mapa-cr.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
