@@ -108,6 +108,34 @@ const SKOLY = [
     },
   },
 
+  {
+    id: "sls-sou-krivoklat",
+    nazev: "Střední lesnická škola a SOU",
+    mesto: "Křivoklát",
+    adresa: "Písky 181",
+    kraj: "STC",
+    typ: "sos",
+    reditel: "Mgr. Alexandra Lochová",
+    web: "https://www.sls-krivoklat.cz",
+    foto: null,
+    popis:
+      "Lesnická škola přímo pod křivoklátským hradem, uprostřed chráněné krajinné oblasti. " +
+      "Maturitní obory lesnictví a veterinářství, učební obory mechanik lesní techniky, " +
+      "opravář lesnických strojů a truhlář — praxe se odehrává v lese, ne za lavicí.",
+    epizoda: {
+      cislo: 3,
+      nazev: "Lesnická škola pod Křivoklátem",
+      delka: "14:34",
+      datum: "2026-08-22",
+      popis:
+        "Třetí díl Středoškolské lupy — rozhovor s ředitelkou Střední lesnické školy " +
+        "a Středního odborného učiliště Křivoklát.",
+      youtube: "V2_ANYhcM1c",
+      spotify: "",
+      apple: "",
+    },
+  },
+
   /* ------------------------------------------------------------
      NOVOU ŠKOLU přidáte přes admin.html (doporučeno), nebo ručně:
      zkopírujte vzor níže sem nad tuto poznámku a odmažte lomítka.

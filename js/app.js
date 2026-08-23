@@ -930,7 +930,16 @@
     pozorujReveal(kont);
   }
 
-  /* obsah boxu přehrávače: tlačítko přehrát / ohláška „připravujeme" */
+  // náhledový obrázek videa z YouTube (maxres nemusí u všech videí existovat → fallback)
+  function nahledYoutube(id, popis) {
+    return (
+      '<img class="player-nahled" src="https://i.ytimg.com/vi/' + encodeURIComponent(id) + '/maxresdefault.jpg"' +
+      ' alt="' + esc(popis || "Náhled videa") + '" loading="lazy"' +
+      ' onerror="this.onerror=null;this.src=\'https://i.ytimg.com/vi/' + encodeURIComponent(id) + '/hqdefault.jpg\'">'
+    );
+  }
+
+  /* obsah boxu přehrávače: náhled + tlačítko přehrát / ohláška „připravujeme" */
   function obsahPrehravace(zdroj, btnId, poznamka) {
     if (!zdroj) {
       return (
@@ -940,7 +949,9 @@
     }
     const kde = zdroj.youtube ? "YouTube" : "Spotify";
     return (
-      '<button type="button" class="player-cover" id="' + btnId + '" aria-label="Přehrát (' + kde + ')">' +
+      '<button type="button" class="player-cover' + (zdroj.youtube ? " ma-nahled" : "") +
+        '" id="' + btnId + '" aria-label="Přehrát (' + kde + ')">' +
+        (zdroj.youtube ? nahledYoutube(zdroj.youtube, zdroj.nazev) : "") +
         '<span class="play-big" aria-hidden="true"></span>' +
         '<span class="player-note">Přehrát · ' + kde + "</span>" +
       "</button>"
@@ -1039,7 +1050,8 @@
       const titulek = box.getAttribute("data-video-titulek") || "Video";
       const btnId = "video-play-" + i;
       box.innerHTML =
-        '<button type="button" class="player-cover" id="' + btnId + '" aria-label="Přehrát video (YouTube)">' +
+        '<button type="button" class="player-cover ma-nahled" id="' + btnId + '" aria-label="Přehrát video (YouTube)">' +
+          nahledYoutube(id, titulek) +
           '<span class="play-big" aria-hidden="true"></span>' +
           '<span class="player-note">Přehrát · YouTube</span>' +
         "</button>";
