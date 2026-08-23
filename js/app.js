@@ -1030,6 +1030,29 @@
     pozorujReveal(kont);
   }
 
+  /* ---------- Videa vložená přímo do stránky ----------
+     <div class="player-box" data-video="ID_YOUTUBE" data-video-titulek="…"></div> */
+  function initStatickaVidea() {
+    $$("[data-video]").forEach((box, i) => {
+      const id = box.getAttribute("data-video");
+      if (!id) return;
+      const titulek = box.getAttribute("data-video-titulek") || "Video";
+      const btnId = "video-play-" + i;
+      box.innerHTML =
+        '<button type="button" class="player-cover" id="' + btnId + '" aria-label="Přehrát video (YouTube)">' +
+          '<span class="play-big" aria-hidden="true"></span>' +
+          '<span class="player-note">Přehrát · YouTube</span>' +
+        "</button>";
+      box.classList.add("player-box--video");
+      $("#" + btnId).addEventListener("click", () => {
+        box.classList.add("is-video");
+        box.innerHTML =
+          '<iframe src="https://www.youtube-nocookie.com/embed/' + encodeURIComponent(id) +
+          '?autoplay=1" title="' + esc(titulek) + '" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>';
+      });
+    });
+  }
+
   /* ---------- Pro školy: poptávkový formulář ---------- */
   function initPoptavka() {
     const form = $("#poptavka-form");
@@ -1086,6 +1109,7 @@
     if (page === "blog") initBlog();
     if (page === "clanek") initClanek();
     if (page === "pro-skoly") initPoptavka();
+    initStatickaVidea();
 
     pozorujReveal(document);
   });

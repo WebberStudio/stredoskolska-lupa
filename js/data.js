@@ -79,9 +79,36 @@ const TYPY_SKOL = {
       Bez něj se na profilu ukazuje „reportáž připravujeme".
    ============================================================ */
 const SKOLY = [
+  {
+    id: "szs-voszs-pribram",
+    nazev: "Střední zdravotnická škola a VOŠ zdravotnická",
+    mesto: "Příbram",
+    adresa: "Jiráskovy sady 113",
+    kraj: "STC",
+    typ: "sos",
+    reditel: "Mgr. Jan Chvál",
+    web: "https://szspb.cz",
+    foto: null,
+    popis:
+      "Zdravotnická škola v centru Příbrami. Na střední škole nabízí obory praktická sestra, " +
+      "zdravotnické lyceum, masér ve zdravotnictví a nutriční asistent, na vyšší odborné škole " +
+      "diplomovanou všeobecnou a diplomovanou dětskou sestru. Součástí školy je domov mládeže, " +
+      "vlastní jídelna i školní poradenské pracoviště.",
+    epizoda: {
+      cislo: 1,
+      nazev: "Zdravotnická škola v Příbrami",
+      delka: "15:08",
+      datum: "2026-08-22",
+      popis:
+        "První díl Středoškolské lupy — rozhovor s ředitelem Střední zdravotnické školy " +
+        "a Vyšší odborné školy zdravotnické v Příbrami.",
+      youtube: "0tYj9iDBgRw",
+      spotify: "",
+      apple: "",
+    },
+  },
 
   /* ------------------------------------------------------------
-     Zatím tu není žádná škola — první epizody natáčíme.
      NOVOU ŠKOLU přidáte přes admin.html (doporučeno), nebo ručně:
      zkopírujte vzor níže sem nad tuto poznámku a odmažte lomítka.
 
