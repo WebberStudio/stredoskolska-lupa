@@ -79,207 +79,37 @@ const TYPY_SKOL = {
       Bez něj se na profilu ukazuje „reportáž připravujeme".
    ============================================================ */
 const SKOLY = [
+
+  /* ------------------------------------------------------------
+     Zatím tu není žádná škola — první epizody natáčíme.
+     NOVOU ŠKOLU přidáte přes admin.html (doporučeno), nebo ručně:
+     zkopírujte vzor níže sem nad tuto poznámku a odmažte lomítka.
+
   {
-    id: "gymnazium-na-vyhlidce-karlovy-vary",
-    nazev: "Gymnázium Na Vyhlídce",
+    id: "gymnazium-priklad-mesto",
+    nazev: "Gymnázium Příklad",
     mesto: "Karlovy Vary",
-    adresa: "Vyhlídková 12",
+    adresa: "Nádražní 12",
     kraj: "KVK",
     typ: "gymnazium",
-    reditel: "Mgr. Jana Dvořáková",
-    web: "https://www.example.cz",
-    foto: null, // cesta k fotce, např. "assets/skoly/vyhlidka.jpg" (ideálně 1200×800)
-    popis:
-      "Všeobecné gymnázium s rozšířenou výukou jazyků a vlastním debatním klubem. " +
-      "Studenti vyjíždějí na výměnné pobyty do Německa a Francie a škola dlouhodobě " +
-      "patří k nejúspěšnějším v kraji u maturit i v přijímacích řízeních na vysoké školy.",
+    reditel: "Mgr. Jana Nováková",
+    web: "https://www.priklad.cz",
+    foto: null,
+    popis: "Pár vět o škole, které uvidí uchazeči na profilu.",
     epizoda: {
       cislo: 1,
-      nazev: "Škola není fabrika na jedničky",
+      nazev: "Název epizody",
       delka: "32:10",
       datum: "2026-09-15",
-      popis:
-        "O tom, proč známky nejsou všechno, jak se gymnázium mění s nástupem AI " +
-        "a co by paní ředitelka vzkázala deváťákům, kteří se bojí přijímaček.",
-      youtube: "",  // TODO: ID videa na YouTube
-      spotify: "",  // TODO: ID epizody na Spotify
-      apple: "",    // TODO: odkaz na Apple Podcasts
-    },
-  },
-  {
-    id: "sps-medialni-tvorby-praha",
-    nazev: "SPŠ mediální tvorby",
-    mesto: "Praha",
-    kraj: "PHA",
-    typ: "sos",
-    reditel: "Ing. Petr Novotný",
-    web: "https://www.example.cz",
-    foto: null,
-    popis:
-      "Střední průmyslová škola zaměřená na média, grafiku a audiovizuální tvorbu. " +
-      "Studenti mají k dispozici vlastní televizní studio, střižny a fotoateliér, " +
-      "praxe probíhají přímo v produkčních firmách a redakcích.",
-    epizoda: {
-      cislo: 2,
-      nazev: "Máme studio, jaké nemá ani leckterá televize",
-      delka: "28:44",
-      datum: "2026-09-22",
-      popis:
-        "Jak vypadá výuka, když je učebnou televizní studio, proč škola nebere " +
-        "každého a co dělají absolventi po maturitě.",
+      popis: "O čem se v epizodě mluví.",
       youtube: "",
       spotify: "",
       apple: "",
     },
+    reportaz: { youtube: "" },
   },
-  {
-    id: "gymnazium-bratri-simu-plzen",
-    nazev: "Gymnázium Bratří Šímů",
-    mesto: "Plzeň",
-    kraj: "PLK",
-    typ: "gymnazium",
-    reditel: "PhDr. Martin Kraus",
-    web: "https://www.example.cz",
-    foto: null,
-    popis:
-      "Osmileté i čtyřleté gymnázium v centru Plzně. Silná matematika a přírodní " +
-      "vědy, robotický kroužek a každoroční studentská vědecká konference.",
-    epizoda: {
-      cislo: 3,
-      nazev: "Proč se nebát matiky (a přijímaček)",
-      delka: "41:02",
-      datum: "2026-10-01",
-      popis:
-        "Pan ředitel o tom, jak se z „strašáku školy“ stala nejoblíbenější hodina, " +
-        "a jak vypadá den otevřených dveří, který má smysl.",
-      youtube: "",
-      spotify: "",
-      apple: "",
-    },
-  },
-  {
-    id: "sos-cestovniho-ruchu-brno",
-    nazev: "SOŠ cestovního ruchu",
-    mesto: "Brno",
-    kraj: "JHM",
-    typ: "sos",
-    reditel: "Mgr. Alena Horká",
-    web: "https://www.example.cz",
-    foto: null,
-    popis:
-      "Odborná škola, ze které se odjíždí na praxe do celé Evropy. Průvodcovství, " +
-      "hotelnictví a event management — a školní cestovka, kterou vedou sami studenti.",
-    epizoda: {
-      cislo: 4,
-      nazev: "Naši studenti provádí turisty po Vídni",
-      delka: "26:31",
-      datum: "2026-10-08",
-      popis:
-        "O praxi v zahraničí, jazycích a o tom, proč je cestovní ruch obor " +
-        "s budoucností i v době, kdy si každý umí koupit letenku sám.",
-      youtube: "",
-      spotify: "",
-      apple: "",
-    },
-  },
-  {
-    id: "sou-strojirenske-ostrava",
-    nazev: "SOU strojírenské",
-    mesto: "Ostrava",
-    kraj: "MSK",
-    typ: "sou",
-    reditel: "Ing. Tomáš Baláž",
-    web: "https://www.example.cz",
-    foto: null,
-    popis:
-      "Učiliště, jehož absolventi mají práci jistou dřív, než dostudují. Moderní " +
-      "dílny s CNC stroji, svařovací škola a stipendia od partnerských firem.",
-    epizoda: {
-      cislo: 5,
-      nazev: "Řemeslo má zlaté dno. A slušnou výplatu",
-      delka: "24:18",
-      datum: "2026-10-15",
-      popis:
-        "Pan ředitel o tom, kolik si vydělá vyučený strojař, proč firmy stojí " +
-        "frontu na absolventy a jak vypadá moderní učiliště v roce 2026.",
-      youtube: "",
-      spotify: "",
-      apple: "",
-    },
-  },
-  {
-    id: "gymnazium-pod-vezi-hradec-kralove",
-    nazev: "Gymnázium Pod Věží",
-    mesto: "Hradec Králové",
-    kraj: "HKK",
-    typ: "gymnazium",
-    reditel: "Mgr. Lucie Sedláčková",
-    web: "https://www.example.cz",
-    foto: null,
-    popis:
-      "Menší gymnázium rodinného typu s důrazem na humanitní obory, školní " +
-      "divadlo a vlastní studentský časopis, který sbírá celostátní ocenění.",
-    epizoda: null, // epizodu připravujeme
-  },
-  {
-    id: "obchodni-akademie-ceske-budejovice",
-    nazev: "Obchodní akademie",
-    mesto: "České Budějovice",
-    kraj: "JHC",
-    typ: "sos",
-    reditel: "Ing. Pavel Šindelář",
-    web: "https://www.example.cz",
-    foto: null,
-    popis:
-      "Ekonomika, účetnictví a fiktivní firmy, ve kterých si studenti vyzkouší " +
-      "podnikání nanečisto. Spolupráce s podnikateli z regionu a kroužek investování.",
-    epizoda: null,
-  },
-  {
-    id: "gymnazium-u-jezera-liberec",
-    nazev: "Gymnázium U Jezera",
-    mesto: "Liberec",
-    kraj: "LBK",
-    typ: "gymnazium",
-    reditel: "RNDr. Eva Marešová",
-    web: "https://www.example.cz",
-    foto: null,
-    popis:
-      "Gymnázium se sportovními třídami pod Ještědem. Lyžařský areál za rohem, " +
-      "spolupráce s Technickou univerzitou a silné přírodovědné semináře.",
-    epizoda: null,
-  },
-  {
-    id: "sos-lazenska-ostrov",
-    nazev: "SOŠ lázeňství a wellness",
-    mesto: "Ostrov",
-    adresa: "Zámecká 4",
-    kraj: "KVK",
-    typ: "sos",
-    reditel: "Mgr. Radek Poledník",
-    web: "https://www.example.cz",
-    foto: null,
-    popis:
-      "Odborná škola spjatá s lázeňskou tradicí regionu — masér, kosmetička, " +
-      "hotelnictví. Praxe přímo v karlovarských a jáchymovských lázeňských domech.",
-    epizoda: null,
-  },
-  {
-    id: "gymnazium-znojmo-namesti",
-    nazev: "Gymnázium Na Náměstí",
-    mesto: "Znojmo",
-    adresa: "Horní náměstí 21",
-    kraj: "JHM",
-    typ: "gymnazium",
-    reditel: "PaedDr. Ivana Bláhová",
-    web: "https://www.example.cz",
-    foto: null,
-    popis:
-      "Gymnázium v historickém centru Znojma s výukou vinařské chemie jako " +
-      "volitelného semináře — jinde v republice ho nenajdete. Výměny s rakouským " +
-      "Retzem a silná francouzština.",
-    epizoda: null,
-  },
+
+     ------------------------------------------------------------ */
 ];
 
 /* ============================================================

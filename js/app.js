@@ -44,6 +44,12 @@
 
   function vyplnStatistiky() {
     const st = statistiky();
+    const pruh = $(".hero-stats");
+    // dokud v databázi nic není, čísla „0 škol“ nedávají smysl
+    if (!st.skoly && pruh) {
+      pruh.innerHTML = "<span>PRVNÍ EPIZODY PRÁVĚ NATÁČÍME</span><span>★</span><span>START V ZÁŘÍ 2026</span>";
+      return;
+    }
     $$("[data-stat]").forEach((el) => {
       const key = el.getAttribute("data-stat");
       if (st[key] != null) el.textContent = st[key];
@@ -430,6 +436,20 @@
   /* akce: { onKraj(kod), onSkola(id) } */
   function vykresliKrajPanel(el, kod, akce) {
     const pocty = poctyDleKraju();
+    if (!SKOLY.length) {
+      /* databáze je zatím prázdná — místo tabulky nul pozvánka */
+      el.innerHTML =
+        '<div class="kraj-panel-head">' +
+          '<div class="kp-top"><span class="eyebrow">Startujeme</span></div>' +
+          '<h3 class="h-disp">Mapa se plní<br>od září 2026</h3>' +
+          '<p class="kp-stats">PRVNÍ EPIZODY PRÁVĚ NATÁČÍME</p>' +
+        "</div>" +
+        '<div class="kraj-panel-prazdny">' +
+          "<p>Jakmile natočíme první epizody, objeví se tu školy podle krajů — a v mapě jejich obce. Chcete být mezi prvními?</p>" +
+          '<a class="btn" href="pro-skoly.html#poptavka">Přidat svoji školu</a>' +
+        "</div>";
+      return;
+    }
     if (!kod) {
       /* přehled celé ČR — tabulka krajů */
       const st = statistiky();
@@ -594,10 +614,30 @@
     if (grid) {
       const sEpizodou = SKOLY.filter((s) => s.epizoda)
         .sort((a, b) => String(b.epizoda.datum || "").localeCompare(String(a.epizoda.datum || "")));
-      vykresliKarty(grid, sEpizodou.slice(0, 3));
+      if (sEpizodou.length) {
+        vykresliKarty(grid, sEpizodou.slice(0, 3));
+      } else {
+        // před vydáním první epizody: místo prázdné mřížky pozvánka
+        grid.classList.remove("grid", "grid--3");
+        grid.innerHTML =
+          '<div class="empty-state reveal">' +
+            "<strong>První epizody právě natáčíme</strong>" +
+            "<p>Rozhovory s řediteli a videoreportáže ze škol vycházejí od září 2026. " +
+            "Chcete, aby vaše škola byla mezi prvními?</p>" +
+            '<a class="btn" href="pro-skoly.html#poptavka">Přidat svoji školu</a>' +
+          "</div>";
+        pozorujReveal(grid);
+      }
     }
     const mapa = $("#mapa-teaser");
-    if (mapa) vytvorMapu(mapa, {}); // klik na kraj → katalog s filtrem
+    if (mapa) {
+      vytvorMapu(mapa, {}); // klik na kraj → katalog s filtrem
+      const popisek = $(".map-side p");
+      if (popisek && !SKOLY.length) {
+        popisek.textContent =
+          "Od září se tu budou objevovat školy po celé republice — v kraji, kde je najdete, i v obci, kde sídlí.";
+      }
+    }
 
     const blogGrid = $("#blog-teaser");
     if (blogGrid && CLANKY.length) {
@@ -723,6 +763,14 @@
         (stav.kraj ? " · " + krajNazev(stav.kraj) : "");
       prazdno.hidden = vysledky.length > 0;
       grid.hidden = vysledky.length === 0;
+      if (!SKOLY.length) {
+        // prázdná databáze ≠ příliš úzký filtr
+        prazdno.innerHTML =
+          "<strong>Databázi právě plníme</strong>" +
+          "<p>První rozhovory s řediteli a videoreportáže ze škol vycházejí od září 2026. " +
+          "Znáte školu, která by tu neměla chybět?</p>" +
+          '<a class="btn" href="pro-skoly.html#poptavka">Přidat školu</a>';
+      }
 
       chipsTyp.forEach((ch) =>
         ch.setAttribute("aria-pressed", ch.getAttribute("data-typ") === stav.typ ? "true" : "false")
