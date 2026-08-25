@@ -33,13 +33,38 @@
     String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 
   const skolaUrl = (s) => "skola.html?id=" + encodeURIComponent(s.id);
+  const maReportaz = (s) => !!(s.reportaz && s.reportaz.youtube);
+  // tečka na konec věty — ale ne za titul, který tečkou už končí (CSc., Ph.D.)
+  const tecka = (s) => (/[.!?]$/.test(String(s).trim()) ? s : s + ".");
+
+  // štítek stavu školy: podcast > reportáž > teprve chystáme
+  function stitekObsahu(s, dlouhy) {
+    if (s.epizoda) {
+      return '<span class="badge-time">' +
+        esc(s.epizoda.delka || (dlouhy ? "ep. " + s.epizoda.cislo : "—")) + "</span>";
+    }
+    if (maReportaz(s)) {
+      return '<span class="badge-rep">Reportáž' +
+        (s.reportaz.delka ? " " + esc(s.reportaz.delka) : "") + "</span>";
+    }
+    return '<span class="badge-soon">Připravujeme</span>';
+  }
+
+  // datum nejnovějšího videa školy (na řazení)
+  function datumObsahu(s) {
+    const a = s.epizoda && s.epizoda.datum ? s.epizoda.datum : "";
+    const b = maReportaz(s) && s.reportaz.datum ? s.reportaz.datum : "";
+    return a > b ? a : b;
+  }
 
   /* ---------- Statistiky ---------- */
   function statistiky() {
     const skoly = SKOLY.length;
     const epizody = SKOLY.filter((s) => s.epizoda).length;
+    const reportaze = SKOLY.filter((s) => s.reportaz && s.reportaz.youtube).length;
+    const videa = epizody + reportaze;
     const kraje = new Set(SKOLY.map((s) => s.kraj)).size;
-    return { skoly, epizody, kraje };
+    return { skoly, epizody, reportaze, videa, kraje };
   }
 
   function vyplnStatistiky() {
@@ -53,6 +78,17 @@
     $$("[data-stat]").forEach((el) => {
       const key = el.getAttribute("data-stat");
       if (st[key] != null) el.textContent = st[key];
+    });
+    // správný tvar slova podle čísla (11 ŠKOL, 3 KRAJE…)
+    const tvary = {
+      skoly: ["škola", "školy", "škol"],
+      videa: ["video", "videa", "videí"],
+      epizody: ["epizoda", "epizody", "epizod"],
+      kraje: ["kraj", "kraje", "krajů"],
+    };
+    $$("[data-stat-slovo]").forEach((el) => {
+      const key = el.getAttribute("data-stat-slovo");
+      if (tvary[key] && st[key] != null) el.textContent = sklonuj(st[key], tvary[key]).toUpperCase();
     });
   }
 
@@ -119,15 +155,13 @@
   /* ---------- Karty škol / epizod ---------- */
   function kartaSkoly(s) {
     const ep = s.epizoda;
-    const badge = ep
-      ? '<span class="badge-time">' + esc(ep.delka || "—") + "</span>"
-      : '<span class="badge-soon">Připravujeme</span>';
+    const badge = stitekObsahu(s);
     const foto = s.foto
       ? '<img src="' + esc(s.foto) + '" alt="' + esc(s.nazev) + '" loading="lazy">'
       : '<span class="thumb-note">foto ředitele</span>';
     const meta = ep
       ? esc(s.reditel) + " · Ep. " + ep.cislo + (ep.datum ? " · " + fmtDatum(ep.datum) : "")
-      : esc(s.reditel);
+      : esc(s.reditel) + (maReportaz(s) && s.reportaz.datum ? " · " + fmtDatum(s.reportaz.datum) : "");
     return (
       '<article class="card reveal">' +
         '<div class="card-thumb">' + foto + badge + "</div>" +
@@ -158,13 +192,15 @@
   }
   const sklonujSkoly = (n) => sklonuj(n, ["škola", "školy", "škol"]);
   const sklonujEpizody = (n) => sklonuj(n, ["epizoda", "epizody", "epizod"]);
+  const sklonujVidea = (n) => sklonuj(n, ["video", "videa", "videí"]);
 
   function poctyDleKraju() {
     const p = {};
     SKOLY.forEach((s) => {
-      if (!p[s.kraj]) p[s.kraj] = { skoly: 0, epizody: 0 };
+      if (!p[s.kraj]) p[s.kraj] = { skoly: 0, epizody: 0, videa: 0 };
       p[s.kraj].skoly++;
-      if (s.epizoda) p[s.kraj].epizody++;
+      if (s.epizoda) { p[s.kraj].epizody++; p[s.kraj].videa++; }
+      if (s.reportaz && s.reportaz.youtube) p[s.kraj].videa++;
     });
     return p;
   }
@@ -419,9 +455,7 @@
   /* ---------- Panel kraje („tabulka") ---------- */
   function radekSkolyPanel(s) {
     const ep = s.epizoda;
-    const stav = ep
-      ? '<span class="badge-time">' + esc(ep.delka || "ep. " + ep.cislo) + "</span>"
-      : '<span class="badge-soon">Připravujeme</span>';
+    const stav = stitekObsahu(s, true);
     return (
       '<a class="kraj-radek" href="' + skolaUrl(s) + '" data-id="' + esc(s.id) + '">' +
         '<span class="kr-info">' +
@@ -454,12 +488,12 @@
       /* přehled celé ČR — tabulka krajů */
       const st = statistiky();
       const radky = Object.keys(KRAJE).map((k) => {
-        const p = pocty[k] || { skoly: 0, epizody: 0 };
+        const p = pocty[k] || { skoly: 0, epizody: 0, videa: 0 };
         return (
           '<button type="button" class="kraj-radek" data-kraj="' + k + '">' +
             '<span class="kr-info"><span class="kr-nazev">' + esc(KRAJE[k]) + "</span>" +
             '<span class="kr-meta">' + p.skoly + " " + sklonujSkoly(p.skoly) +
-            (p.epizody ? " · " + p.epizody + " " + sklonujEpizody(p.epizody) : "") + "</span></span>" +
+            (p.videa ? " · " + p.videa + " " + sklonujVidea(p.videa) : "") + "</span></span>" +
             '<span class="kr-stav"><span class="kr-sipka" aria-hidden="true">→</span></span>' +
           "</button>"
         );
@@ -468,7 +502,9 @@
         '<div class="kraj-panel-head">' +
           '<div class="kp-top"><span class="eyebrow">Celá republika</span></div>' +
           '<h3 class="h-disp">Vyber si kraj</h3>' +
-          '<p class="kp-stats">' + st.skoly + " ŠKOL · " + st.epizody + " EPIZOD · " + st.kraje + " KRAJŮ</p>" +
+          '<p class="kp-stats">' + st.skoly + " " + sklonujSkoly(st.skoly).toUpperCase() +
+          " · " + st.videa + " " + sklonujVidea(st.videa).toUpperCase() +
+          " · " + st.kraje + " " + sklonuj(st.kraje, ["KRAJ", "KRAJE", "KRAJŮ"]) + "</p>" +
         "</div>" +
         '<div class="kraj-panel-body">' + radky + "</div>" +
         '<div class="kraj-panel-foot"><a class="link-arrow" href="pro-skoly.html">Chci sem svoji školu →</a></div>';
@@ -480,7 +516,7 @@
 
     /* vybraný kraj — tabulka jeho škol */
     const skoly = SKOLY.filter((s) => s.kraj === kod);
-    const p = pocty[kod] || { skoly: 0, epizody: 0 };
+    const p = pocty[kod] || { skoly: 0, epizody: 0, videa: 0 };
     let telo;
     if (skoly.length) {
       telo = '<div class="kraj-panel-body">' + skoly.map(radekSkolyPanel).join("") + "</div>";
@@ -497,7 +533,7 @@
           '<button type="button" class="kp-zrusit" id="kp-zrusit">✕ Celá ČR</button></div>' +
         '<h3 class="h-disp">' + esc(KRAJE[kod] || kod) + "</h3>" +
         '<p class="kp-stats">' + p.skoly + " " + sklonujSkoly(p.skoly).toUpperCase() +
-          " · " + p.epizody + " " + sklonujEpizody(p.epizody).toUpperCase() + "</p>" +
+          " · " + p.videa + " " + sklonujVidea(p.videa).toUpperCase() + "</p>" +
       "</div>" +
       telo +
       '<div class="kraj-panel-foot">' +
@@ -532,9 +568,10 @@
           '<span class="sp-ep-meta">Podcast</span>' +
           '<span class="badge-soon">Epizodu připravujeme</span>' +
         "</div>";
-    const repBox = (s.reportaz && s.reportaz.youtube)
+    const repBox = maReportaz(s)
       ? '<div class="sp-epizoda">' +
-          '<span class="sp-ep-meta">Reportáž ze školy</span>' +
+          '<span class="sp-ep-meta">Reportáž ze školy' +
+            (s.reportaz.delka ? " · " + esc(s.reportaz.delka) : "") + "</span>" +
           '<span class="sp-ep-nazev">▶ K přehrání na profilu</span>' +
         "</div>"
       : '<div class="sp-epizoda">' +
@@ -612,10 +649,10 @@
     // nejnovější epizody (podle data epizody)
     const grid = $("#nejnovejsi-grid");
     if (grid) {
-      const sEpizodou = SKOLY.filter((s) => s.epizoda)
-        .sort((a, b) => String(b.epizoda.datum || "").localeCompare(String(a.epizoda.datum || "")));
-      if (sEpizodou.length) {
-        vykresliKarty(grid, sEpizodou.slice(0, 3));
+      const sObsahem = SKOLY.filter((s) => s.epizoda || maReportaz(s))
+        .sort((a, b) => datumObsahu(b).localeCompare(datumObsahu(a)));
+      if (sObsahem.length) {
+        vykresliKarty(grid, sObsahem.slice(0, 3));
       } else {
         // před vydáním první epizody: místo prázdné mřížky pozvánka
         grid.classList.remove("grid", "grid--3");
@@ -835,8 +872,8 @@
         '<h1 class="h-disp">' + esc(s.nazev) + "</h1>" +
         '<p class="hero-sub">' +
           (ep
-            ? "Epizoda " + ep.cislo + ": „" + esc(ep.nazev) + "“. Hostem je " + esc(s.reditel) + "."
-            : "Rozhovor s vedením školy právě připravujeme — školu vede " + esc(s.reditel) + ".") +
+            ? "Epizoda " + ep.cislo + ": „" + esc(ep.nazev) + "“. Hostem je " + tecka(esc(s.reditel))
+            : "Rozhovor s vedením školy právě připravujeme — školu vede " + tecka(esc(s.reditel))) +
         "</p>" +
       "</div></section>";
 
@@ -902,6 +939,9 @@
     info += '<div class="fact"><dt>Ředitel/ka</dt><dd>' + esc(s.reditel) + "</dd></div>";
     if (ep && ep.delka) info += '<div class="fact"><dt>Délka epizody</dt><dd>' + esc(ep.delka) + "</dd></div>";
     if (ep && ep.datum) info += '<div class="fact"><dt>Datum vydání</dt><dd>' + fmtDatum(ep.datum) + "</dd></div>";
+    if (maReportaz(s) && s.reportaz.delka) {
+      info += '<div class="fact"><dt>Délka reportáže</dt><dd>' + esc(s.reportaz.delka) + "</dd></div>";
+    }
     if (s.web) {
       info +=
         '<div class="fact"><dt>Web školy</dt><dd><a href="' + esc(s.web) + '" target="_blank" rel="noopener">' +

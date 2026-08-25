@@ -402,6 +402,15 @@ input, select, textarea { font: inherit; color: var(--ink); }
   font-family: var(--mono);
   letter-spacing: .04em;
 }
+.badge-rep {
+  background: var(--cream); color: var(--navy);
+  border: 2px solid var(--orange);
+  font-weight: 700; font-size: 10px;
+  text-transform: uppercase; letter-spacing: .05em;
+  padding: 3px 7px;
+  position: relative;
+  white-space: nowrap;
+}
 .badge-soon {
   background: var(--orange); color: var(--navy);
   font-weight: 700; font-size: 10px;

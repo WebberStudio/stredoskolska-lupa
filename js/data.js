@@ -4,9 +4,7 @@
    Tohle je jediný soubor, který se edituje při správě obsahu.
    Žádný build, žádný programátor — uložit a nahrát na hosting.
 
-   ⚠️ UKÁZKOVÁ DATA: školy, ředitelé i články níže jsou smyšlené
-   placeholdery pro vývoj webu. Před spuštěním nahraďte
-   skutečným obsahem.
+   Obsah spravujte přes admin.html — ruční úpravy jen opatrně.
    ============================================================ */
 
 /* ---------- Nastavení webu ---------- */
@@ -74,9 +72,10 @@ const TYPY_SKOL = {
    5. U epizody vyplňte `youtube` (ID videa, tj. text za v=)
       nebo `spotify` (ID epizody z odkazu open.spotify.com/episode/...).
       Dokud jsou prázdné, na webu je místo přehrávače ohláška.
-   6. Volitelné pole `reportaz: { youtube: "ID" }` = reportáž /
-      promo video ze školy — druhý přehrávač na profilu školy.
-      Bez něj se na profilu ukazuje „reportáž připravujeme".
+   6. `reportaz: { youtube: "ID", delka: "16:15", datum: "2026-01-13" }`
+      = videoreportáž ze školy (druhý přehrávač na profilu).
+      Prázdné `youtube` → na profilu je „reportáž připravujeme".
+      Škola může mít jen reportáž, jen podcast, nebo obojí.
    ============================================================ */
 const SKOLY = [
   {
@@ -90,24 +89,25 @@ const SKOLY = [
     web: "https://szspb.cz",
     foto: null,
     popis:
-      "Zdravotnická škola v centru Příbrami. Na střední škole nabízí obory praktická sestra, " +
-      "zdravotnické lyceum, masér ve zdravotnictví a nutriční asistent, na vyšší odborné škole " +
-      "diplomovanou všeobecnou a diplomovanou dětskou sestru. Součástí školy je domov mládeže, " +
-      "vlastní jídelna i školní poradenské pracoviště.",
+      "Zdravotnická škola v centru Příbrami. Na střední škole nabízí obory " +
+      "praktická sestra, zdravotnické lyceum, masér ve zdravotnictví a nutriční " +
+      "asistent, na vyšší odborné škole diplomovanou všeobecnou a diplomovanou " +
+      "dětskou sestru. Součástí školy je domov mládeže, vlastní jídelna i " +
+      "školní poradenské pracoviště.",
     epizoda: {
       cislo: 1,
       nazev: "Zdravotnická škola v Příbrami",
       delka: "15:08",
       datum: "2026-08-22",
       popis:
-        "První díl Středoškolské lupy — rozhovor s ředitelem Střední zdravotnické školy " +
-        "a Vyšší odborné školy zdravotnické v Příbrami.",
+        "První díl Středoškolské lupy — rozhovor s ředitelem Střední zdravotnické " +
+        "školy a Vyšší odborné školy zdravotnické v Příbrami.",
       youtube: "0tYj9iDBgRw",
       spotify: "",
       apple: "",
     },
+    reportaz: { youtube: "kF8lDC4CDQQ", delka: "27:12", datum: "2026-01-29" },
   },
-
   {
     id: "sls-sou-krivoklat",
     nazev: "Střední lesnická škola a SOU",
@@ -119,21 +119,174 @@ const SKOLY = [
     web: "https://www.sls-krivoklat.cz",
     foto: null,
     popis:
-      "Lesnická škola přímo pod křivoklátským hradem, uprostřed chráněné krajinné oblasti. " +
-      "Maturitní obory lesnictví a veterinářství, učební obory mechanik lesní techniky, " +
-      "opravář lesnických strojů a truhlář — praxe se odehrává v lese, ne za lavicí.",
+      "Lesnická škola přímo pod křivoklátským hradem, uprostřed chráněné " +
+      "krajinné oblasti. Maturitní obory lesnictví a veterinářství, učební " +
+      "obory mechanik lesní techniky, opravář lesnických strojů a truhlář — " +
+      "praxe se odehrává v lese, ne za lavicí.",
     epizoda: {
       cislo: 3,
       nazev: "Lesnická škola pod Křivoklátem",
       delka: "14:34",
       datum: "2026-08-22",
       popis:
-        "Třetí díl Středoškolské lupy — rozhovor s ředitelkou Střední lesnické školy " +
-        "a Středního odborného učiliště Křivoklát.",
+        "Třetí díl Středoškolské lupy — rozhovor s ředitelkou Střední lesnické " +
+        "školy a Středního odborného učiliště Křivoklát.",
       youtube: "V2_ANYhcM1c",
       spotify: "",
       apple: "",
     },
+    reportaz: { youtube: "-cFCpbUX33E", delka: "16:15", datum: "2026-01-13" },
+  },
+  {
+    id: "sou-libechov",
+    nazev: "Střední odborné učiliště Liběchov",
+    mesto: "Liběchov",
+    adresa: "Boží Voda 230",
+    kraj: "STC",
+    typ: "sou",
+    reditel: "Ing. Vít Faltejsek",
+    web: "https://soulibechov.cz",
+    foto: null,
+    popis:
+      "Rodinná škola v klidném prostředí u Mělníka, s tradicí od roku 1953. " +
+      "Menší kolektiv, osobní přístup a učební obory, po kterých je na trhu " +
+      "práce poptávka.",
+    epizoda: null, // podcast zatím nenatočen
+    reportaz: { youtube: "yDC5EtPlE4k", delka: "13:50", datum: "2026-04-02" },
+  },
+  {
+    id: "sos-sou-slany",
+    nazev: "Střední odborná škola a SOU Slaný",
+    mesto: "Slaný",
+    adresa: "Hlaváčkovo náměstí 673",
+    kraj: "STC",
+    typ: "sos",
+    reditel: "Mgr. Monika Kašparová",
+    web: "https://sosasouslany.cz",
+    foto: null,
+    popis:
+      "Škola s obory, po kterých je na trhu práce okamžitá poptávka. Jako " +
+      "jediná ve Středočeském kraji nabízí obor technická zařízení budov — " +
+      "vedle dalších technických a řemeslných oborů.",
+    epizoda: null, // podcast zatím nenatočen
+    reportaz: { youtube: "xYkvz42UYnY", delka: "16:58", datum: "2026-01-21" },
+  },
+  {
+    id: "ss-rybarska-trebon",
+    nazev: "SŠ rybářská a vodohospodářská Jakuba Krčína",
+    mesto: "Třeboň",
+    adresa: "Táboritská 688",
+    kraj: "JHC",
+    typ: "sos",
+    reditel: "Ing. Aleš Vondrka, Ph.D.",
+    web: "https://www.ssrv.cz",
+    foto: null,
+    popis:
+      "Škola nejstaršího českého řemesla v srdci třeboňských rybníků. Rybářství " +
+      "a vodohospodářství v podání profesionálů — absolventi mají uplatnění " +
+      "doma i v zahraničí.",
+    epizoda: null, // podcast zatím nenatočen
+    reportaz: { youtube: "LBms0hVy0as", delka: "16:46", datum: "2025-12-17" },
+  },
+  {
+    id: "sportovni-gymnazium-kladno",
+    nazev: "Sportovní gymnázium Kladno",
+    mesto: "Kladno",
+    adresa: "Plzeňská 3103",
+    kraj: "STC",
+    typ: "gymnazium",
+    reditel: "Mgr. Květoslava Havlůjová",
+    web: "https://sgagy.cz",
+    foto: null,
+    popis:
+      "Osmileté i čtyřleté všeobecné studium, k tomu rozšířená výuka tělesné " +
+      "výchovy a čtyřleté zaměření sportovní příprava — gymnázium pro ty, kdo " +
+      "chtějí studovat i závodit.",
+    epizoda: null, // podcast zatím nenatočen
+    reportaz: { youtube: "8UIpn5imBdY", delka: "13:54", datum: "2025-10-08" },
+  },
+  {
+    id: "sos-sou-horovice",
+    nazev: "Střední odborná škola a SOU Hořovice",
+    mesto: "Hořovice",
+    adresa: "Palackého náměstí 100",
+    kraj: "STC",
+    typ: "sos",
+    reditel: "Ing. Vladimír Kebert, CSc.",
+    web: "https://soshorovice.cz",
+    foto: null,
+    popis:
+      "Technicky výborně vybavená škola s jedenácti studijními obory — od " +
+      "informačních technologií po řemesla. Reportáží provázejí sami studenti " +
+      "oboru IT.",
+    epizoda: null, // podcast zatím nenatočen
+    reportaz: { youtube: "wzsKfPjDycY", delka: "19:50", datum: "2025-09-18" },
+  },
+  {
+    id: "ss-remesel-kunice",
+    nazev: "Střední škola řemesel Kunice",
+    mesto: "Kunice",
+    adresa: "K Učilišti 18",
+    kraj: "STC",
+    typ: "sou",
+    reditel: "Mgr. Dalibor Zdobinský",
+    web: "https://www.ssrkunice.cz",
+    foto: null,
+    popis:
+      "Škola pro žáky se speciálními vzdělávacími potřebami. Malé útulné třídy " +
+      "s moderním vybavením, velká zahrada a lesy kolem — a řemeslné obory, " +
+      "které dávají jistotu.",
+    epizoda: null, // podcast zatím nenatočen
+    reportaz: { youtube: "sCdyN24CWhA", delka: "12:11", datum: "2025-09-11" },
+  },
+  {
+    id: "gymnazium-stribro",
+    nazev: "Gymnázium a obchodní akademie Stříbro",
+    mesto: "Stříbro",
+    adresa: "Soběslavova 1426",
+    kraj: "PLK",
+    typ: "gymnazium",
+    reditel: "Mgr. Milan Deredimos",
+    web: "https://www.goas.cz",
+    foto: null,
+    popis:
+      "Gymnázium a obchodní akademie pod jednou střechou — všeobecné vzdělání i " +
+      "ekonomické obory v menším městě na Tachovsku, kde se všichni navzájem " +
+      "znají.",
+    epizoda: null, // podcast zatím nenatočen
+    reportaz: { youtube: "7pwxr-C-Kh4", delka: "12:58", datum: "2025-06-25" },
+  },
+  {
+    id: "sou-domazlice",
+    nazev: "Střední odborné učiliště Domažlice",
+    mesto: "Domažlice",
+    adresa: "Prokopa Velikého 640",
+    kraj: "PLK",
+    typ: "sou",
+    reditel: "Mgr. Zdeňka Buršíková",
+    web: "https://soudom.cz",
+    foto: null,
+    popis:
+      "Učiliště s maturitními i učebními obory a pracovišti v Domažlicích a ve " +
+      "Stodu. Škola má řadu ocenění včetně mezinárodního certifikátu IES.",
+    epizoda: null, // podcast zatím nenatočen
+    reportaz: { youtube: "ucEVkUjK3zQ", delka: "6:03", datum: "2025-04-15" },
+  },
+  {
+    id: "ss-zivnostenska-plana",
+    nazev: "Střední škola živnostenská a Základní škola",
+    mesto: "Planá",
+    adresa: "Kostelní 129",
+    kraj: "PLK",
+    typ: "sou",
+    reditel: "Mgr. Josef Mára",
+    web: "https://www.sszplana.cz",
+    foto: null,
+    popis:
+      "Živnostenská škola na Tachovsku s učebními obory včetně ošetřovatele. " +
+      "Součástí je i základní škola — malá škola s osobním přístupem.",
+    epizoda: null, // podcast zatím nenatočen
+    reportaz: { youtube: "br5lxNiiExU", delka: "7:02", datum: "2025-01-17" },
   },
 
   /* ------------------------------------------------------------
@@ -161,7 +314,7 @@ const SKOLY = [
       spotify: "",
       apple: "",
     },
-    reportaz: { youtube: "" },
+    reportaz: { youtube: "", delka: "", datum: "" },
   },
 
      ------------------------------------------------------------ */
