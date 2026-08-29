@@ -1,6 +1,9 @@
-# Administrace je lokální nástroj — na veřejný hosting nepatří
+# Administrace je lokální nástroj — na veřejný hosting nepatří.
+# Díky tomu se k ní přes internet nikdo nedostane.
 admin.html
 js/admin.js
+js/admin-auth.js
+js/admin-ucty.js
 css/admin.css
 
 # systémové soubory
