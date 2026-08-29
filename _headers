@@ -1,0 +1,30 @@
+# ============================================================
+# Nastavení pro Cloudflare Pages (na GitHub Pages se ignoruje)
+# ------------------------------------------------------------
+# Řídí, jak dlouho si prohlížeč drží soubory v paměti.
+# ============================================================
+
+# Fonty se nikdy nemění — ať se stahují jen při první návštěvě
+/fonts/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Mapové podklady se mění výjimečně
+/js/mapa-cr.js
+  Cache-Control: public, max-age=604800
+/js/obce-cr.js
+  Cache-Control: public, max-age=604800
+
+# Logo a obrázky — týden, ale při výměně se projeví do týdne
+/assets/*
+  Cache-Control: public, max-age=86400
+
+# Obsah webu (školy, epizody, články) — vždy ověřit čerstvost,
+# aby se změny z administrace projevily hned
+/js/data.js
+  Cache-Control: public, max-age=0, must-revalidate
+
+# Základní bezpečnostní hlavičky pro celý web
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: SAMEORIGIN
