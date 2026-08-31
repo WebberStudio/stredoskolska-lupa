@@ -77,7 +77,19 @@ const TYPY_SKOL = {
       Prázdné `youtube` → na profilu je „reportáž připravujeme".
       Škola může mít jen reportáž, jen podcast, nebo obojí.
    ============================================================ */
-const SKOLY = [
+/* ============================================================
+   ⏸ OBSAH JE DOČASNĚ SKRYTÝ
+   ------------------------------------------------------------
+   Školy i s epizodami a reportážemi zůstávají níž uložené, ale
+   web je nezobrazuje — chová se, jako by teprve startoval.
+
+   AŽ SE MAJÍ ZASE UKÁZAT: smažte řádek `const SKOLY = [];` pod
+   tímhle textem a v řádku `const SKOLY_PRIPRAVENE = [`
+   přepište název zpátky na `const SKOLY = [`.
+   ============================================================ */
+const SKOLY = [];
+
+const SKOLY_PRIPRAVENE = [
   {
     id: "szs-voszs-pribram",
     nazev: "Střední zdravotnická škola a VOŠ zdravotnická",
