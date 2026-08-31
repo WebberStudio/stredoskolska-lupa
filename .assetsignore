@@ -1,5 +1,14 @@
-# Soubory, které se nemají servírovat jako součást webu
+# Co se NEMÁ nahrávat na web jako jeho součást.
+# Formát je stejný jako u .gitignore.
+
+# verzování a systémové soubory
+**/.git
+**/.gitignore
+**/.DS_Store
+**/Thumbs.db
+**/node_modules
+
+# konfigurace nasazení a serverový skript
 wrangler.jsonc
 worker.js
 .assetsignore
-.gitignore
