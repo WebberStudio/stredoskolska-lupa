@@ -1,0 +1,5 @@
+# Soubory, které se nemají servírovat jako součást webu
+wrangler.jsonc
+worker.js
+.assetsignore
+.gitignore

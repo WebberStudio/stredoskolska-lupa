@@ -1,0 +1,25 @@
+{
+  // ============================================================
+  // Konfigurace nasazení na Cloudflare (Workers + statické soubory)
+  // ============================================================
+  "name": "stredoskolska-lupa",
+  "compatibility_date": "2026-08-31",
+
+  // Skript, který hlídá přístup do administrace
+  "main": "worker.js",
+
+  "assets": {
+    // celý web je v kořeni repozitáře
+    "directory": "./",
+    "binding": "ASSETS",
+    // neexistující adresa -> naše vlastní 404 stránka
+    "not_found_handling": "404-page",
+    // skript musí běžet dřív než servírování souborů, aby stihl
+    // zkontrolovat heslo u administrace
+    "run_worker_first": true
+  },
+
+  "observability": {
+    "enabled": true
+  }
+}

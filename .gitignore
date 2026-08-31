@@ -1,10 +1,7 @@
-# Administrace je lokální nástroj — na veřejný hosting nepatří.
-# Díky tomu se k ní přes internet nikdo nedostane.
-admin.html
-js/admin.js
-js/admin-auth.js
+# Přihlašovací údaje do administrace zůstávají jen v tomto počítači.
+# Otisky hesel nemají co dělat ve veřejném repozitáři — na web se
+# nahrávají ručně (viz návod v administraci).
 js/admin-ucty.js
-css/admin.css
 
 # systémové soubory
 Thumbs.db

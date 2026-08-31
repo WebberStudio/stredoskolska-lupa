@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Administrace · Středoškolská lupa</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" type="image/png" href="assets/favicon.png">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+
+<header class="adm-header">
+  <div class="wrap">
+    <a class="brand" href="index.html">
+      <img class="brand-mark" src="assets/logo.png" alt="" width="34" height="34">
+      <span class="brand-name">Středoškolská lupa</span>
+      <span class="adm-badge">Administrace</span>
+    </a>
+    <div class="adm-stav">
+      <span class="adm-uzivatel" id="adm-uzivatel" hidden></span>
+      <button class="adm-odhlasit" id="btn-odhlasit" type="button" hidden>Odhlásit</button>
+      <span class="adm-slozka" id="adm-slozka">Složka webu nepřipojena</span>
+      <button class="btn btn--ghost-dark" id="btn-pripojit" type="button">Propojit složku webu</button>
+      <button class="btn" id="btn-ulozit" type="button">Uložit změny</button>
+    </div>
+  </div>
+</header>
+
+<div class="adm-zmeny" id="adm-zmeny" hidden>
+  <div class="wrap">
+    <span>● Neuložené změny</span>
+    <button type="button" id="btn-ulozit-2">Uložit</button>
+    <button type="button" class="ghost" id="btn-stahnout">Stáhnout data.js</button>
+    <button type="button" class="ghost" id="btn-zahodit">Zahodit změny</button>
+  </div>
+</div>
+
+<main class="wrap">
+  <nav class="adm-taby" aria-label="Sekce administrace">
+    <button type="button" class="chip" data-tab="skoly" aria-pressed="true">Školy</button>
+    <button type="button" class="chip" data-tab="blog" aria-pressed="false">Blog</button>
+    <button type="button" class="chip" data-tab="nastaveni" aria-pressed="false">Nastavení</button>
+    <button type="button" class="chip" data-tab="ucty" aria-pressed="false">Účty</button>
+    <button type="button" class="chip" data-tab="navod" aria-pressed="false">Návod</button>
+  </nav>
+
+  <div class="adm-obsah" id="adm-obsah">
+    <noscript><p>Administrace potřebuje zapnutý JavaScript.</p></noscript>
+  </div>
+</main>
+
+<script src="js/data.js"></script>
+<script src="js/mapa-cr.js"></script>
+<script src="js/obce-cr.js"></script>
+<script src="js/admin-ucty.js"></script>
+<script src="js/admin.js"></script>
+<script src="js/admin-auth.js"></script>
+</body>
+</html>
