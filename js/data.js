@@ -78,18 +78,17 @@ const TYPY_SKOL = {
       Škola může mít jen reportáž, jen podcast, nebo obojí.
    ============================================================ */
 /* ============================================================
-   ⏸ OBSAH JE DOČASNĚ SKRYTÝ
+   ⏸ PODCASTY JSOU DOČASNĚ SKRYTÉ
    ------------------------------------------------------------
-   Školy i s epizodami a reportážemi zůstávají níž uložené, ale
-   web je nezobrazuje — chová se, jako by teprve startoval.
+   Školy i videoreportáže se normálně zobrazují. Skryté jsou
+   pouze epizody podcastu — jejich data zůstávají uložená
+   v poli `epizoda_skryta`.
 
-   AŽ SE MAJÍ ZASE UKÁZAT: smažte řádek `const SKOLY = [];` pod
-   tímhle textem a v řádku `const SKOLY_PRIPRAVENE = [`
-   přepište název zpátky na `const SKOLY = [`.
+   AŽ SE MAJÍ PODCASTY ZASE UKÁZAT: u dotčených škol smažte
+   řádek `epizoda: null,` a `epizoda_skryta:` přejmenujte
+   zpátky na `epizoda:`.
    ============================================================ */
-const SKOLY = [];
-
-const SKOLY_PRIPRAVENE = [
+const SKOLY = [
   {
     id: "szs-voszs-pribram",
     nazev: "Střední zdravotnická škola a VOŠ zdravotnická",
@@ -106,7 +105,8 @@ const SKOLY_PRIPRAVENE = [
       "asistent, na vyšší odborné škole diplomovanou všeobecnou a diplomovanou " +
       "dětskou sestru. Součástí školy je domov mládeže, vlastní jídelna i " +
       "školní poradenské pracoviště.",
-    epizoda: {
+    epizoda: null, // podcast dočasně skrytý
+    epizoda_skryta: {
       cislo: 1,
       nazev: "Zdravotnická škola v Příbrami",
       delka: "15:08",
@@ -135,7 +135,8 @@ const SKOLY_PRIPRAVENE = [
       "krajinné oblasti. Maturitní obory lesnictví a veterinářství, učební " +
       "obory mechanik lesní techniky, opravář lesnických strojů a truhlář — " +
       "praxe se odehrává v lese, ne za lavicí.",
-    epizoda: {
+    epizoda: null, // podcast dočasně skrytý
+    epizoda_skryta: {
       cislo: 3,
       nazev: "Lesnická škola pod Křivoklátem",
       delka: "14:34",
