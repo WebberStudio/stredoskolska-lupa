@@ -164,6 +164,16 @@ ${radky}
 
   async function ulozUcty(tise) {
     const text = generujUctyJs();
+    if (naWebu) {
+      try {
+        await publikovatSoubor("js/admin-ucty.js", text, "Úprava přístupů do administrace");
+        if (!tise) toast("Účty publikovány ✓", "ok");
+        return true;
+      } catch (e) {
+        toast("Uložení účtů selhalo: " + (e && e.message ? e.message : e), "chyba");
+        return false;
+      }
+    }
     if (!slozka) {
       if (fsPodpora) {
         const ok = await pripojitSlozku();
@@ -194,6 +204,41 @@ ${radky}
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 4000);
     toast("Staženo — soubor nahraďte ve složce webu: js/admin-ucty.js", "ok");
+  }
+
+  /* ---------- Publikování rovnou na web (přes server) ----------
+     Funguje jen tam, kde běží serverová část — tedy na ostré adrese,
+     ne při otevření administrace z disku. */
+  const naWebu = !/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname) &&
+                 location.protocol !== "file:";
+
+  async function publikovatSoubor(cesta, obsah, popis) {
+    const odpoved = await fetch("/admin/publikovat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ soubor: cesta, obsah: obsah, zprava: popis }),
+    });
+    let data = {};
+    try { data = await odpoved.json(); } catch (e) { /* prázdná odpověď */ }
+    if (!odpoved.ok || !data.ok) {
+      throw new Error(data.chyba || ("Server odpověděl " + odpoved.status));
+    }
+    return data;
+  }
+
+  async function publikovatVse() {
+    const tlacitka = [$("#btn-publikovat"), $("#btn-publikovat-2")].filter(Boolean);
+    tlacitka.forEach((b) => { b.disabled = true; b.textContent = "Publikuji…"; });
+    try {
+      await publikovatSoubor("js/data.js", generujDataJs(),
+        "Aktualizace obsahu z administrace (" + (AUTH ? AUTH.email : "web") + ")");
+      prijmoutUlozeno();
+      toast("Publikováno ✓ Web se během chvilky sám přestaví.", "ok");
+    } catch (e) {
+      toast("Publikování selhalo: " + (e && e.message ? e.message : e), "chyba");
+    } finally {
+      tlacitka.forEach((b) => { b.disabled = false; b.textContent = "Publikovat na web"; });
+    }
   }
 
   /* ---------- Ukládání: složka webu (File System Access) ---------- */
@@ -846,6 +891,12 @@ ${radky}
         "<p>Hlavní ochranou ale je, že <strong>administrace vůbec není na internetu</strong> — soubory " +
         "<code>admin.html</code>, <code>js/admin*.js</code> a <code>css/admin.css</code> se na hosting " +
         "nenahrávají. Kdo nemá přístup k tomuhle počítači, k administraci se nedostane.</p>" +
+        "<h3>Publikování změn</h3>" +
+        "<p>Když administraci otevřete na adrese webu, máte nahoře tlačítko " +
+        "<strong>Publikovat na web</strong>. Uloží změny rovnou na web — do minuty se " +
+        "samy projeví, nemusíte nic nahrávat ručně.</p>" +
+        "<p>Když administraci otevřete u sebe v počítači, publikovat nejde; tam se " +
+        "ukládá do složky webu tlačítkem <strong>Uložit změny</strong>.</p>" +
         "<h3>Po nahrání na hosting změnu hned nevidím</h3>" +
         "<p>Prohlížeč si soubory drží v paměti zhruba <strong>10 minut</strong>. Když chcete výsledek " +
         "vidět ihned, načtěte stránku znovu přes <code>Ctrl + Shift + R</code> (na Macu <code>Cmd + Shift + R</code>). " +
@@ -869,6 +920,10 @@ ${radky}
       ui.editace = null;
       render();
     }));
+
+  [$("#btn-publikovat"), $("#btn-publikovat-2")].forEach((b) => {
+    if (b) b.addEventListener("click", publikovatVse);
+  });
 
   $("#btn-pripojit").addEventListener("click", pripojitSlozku);
   $("#btn-ulozit").addEventListener("click", ulozit);
@@ -904,6 +959,17 @@ ${radky}
     u.textContent = auth.email;
     u.hidden = false;
     $("#btn-odhlasit").hidden = false;
+
+    // na ostré adrese se publikuje na web, lokálně se ukládá do složky
+    if (naWebu) {
+      [$("#btn-publikovat"), $("#btn-publikovat-2")].forEach((b) => { if (b) b.hidden = false; });
+      const pripojit = $("#btn-pripojit");
+      if (pripojit) pripojit.hidden = true;
+      const ulozit = $("#btn-ulozit");
+      if (ulozit) ulozit.hidden = true;
+      const slozka = $("#adm-slozka");
+      if (slozka) slozka.textContent = "Publikuje se přímo na web";
+    }
 
     if (auth.prvniUcet) {
       ui.tab = "ucty";

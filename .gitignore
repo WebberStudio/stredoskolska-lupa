@@ -6,3 +6,9 @@ js/admin-ucty.js
 # systémové soubory
 Thumbs.db
 .DS_Store
+
+# lokální proměnné pro vývoj (hesla!)
+.dev.vars
+
+# dočasné soubory wranglera
+.wrangler/

@@ -1,6 +1,6 @@
 # ============================================================
-# Přesměrování pro Cloudflare Pages
+# Přesměrování pro Cloudflare
+# (Workers podporují jen kódy 200, 301, 302, 303, 307, 308)
 # ============================================================
 
-# Pomocné soubory verzování nemají na webu co dělat
-/.gitignore   /404.html   404
+# zatím žádná pravidla nepotřebujeme
