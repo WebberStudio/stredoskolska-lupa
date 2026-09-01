@@ -97,7 +97,7 @@ const SKOLY = [
     typ: "sos",
     reditel: "Mgr. Jan Chvál",
     web: "https://szspb.cz",
-    foto: null,
+    foto: "assets/skoly/szs-voszs-pribram.jpg",
     popis:
       "Zdravotnická škola v centru Příbrami. Na střední škole nabízí obory " +
       "praktická sestra, zdravotnické lyceum, masér ve zdravotnictví a nutriční " +
