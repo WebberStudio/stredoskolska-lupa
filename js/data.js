@@ -17,7 +17,7 @@ const NASTAVENI = {
     instagram: "",
     tiktok: "",
     youtube: "",
-    facebook: "",
+    facebook: "https://www.facebook.com/profile.php?id=100083340547357",
     spotify: "",
     applePodcasts: "",
   },
