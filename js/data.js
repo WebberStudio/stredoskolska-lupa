@@ -78,15 +78,14 @@ const TYPY_SKOL = {
       Škola může mít jen reportáž, jen podcast, nebo obojí.
    ============================================================ */
 /* ============================================================
-   ⏸ PODCASTY JSOU DOČASNĚ SKRYTÉ
+   ⏸ SKRYTÉ EPIZODY
    ------------------------------------------------------------
-   Školy i videoreportáže se normálně zobrazují. Skryté jsou
-   pouze epizody podcastu — jejich data zůstávají uložená
+   1. díl (Příbram) je od 1. 9. 2026 zveřejněný.
+   Skrytý zůstává 3. díl (Křivoklát) — jeho data čekají
    v poli `epizoda_skryta`.
 
-   AŽ SE MAJÍ PODCASTY ZASE UKÁZAT: u dotčených škol smažte
-   řádek `epizoda: null,` a `epizoda_skryta:` přejmenujte
-   zpátky na `epizoda:`.
+   AŽ SE MÁ EPIZODA UKÁZAT: u dané školy smažte řádek
+   `epizoda: null,` a `epizoda_skryta:` přejmenujte na `epizoda:`.
    ============================================================ */
 const SKOLY = [
   {
@@ -105,8 +104,7 @@ const SKOLY = [
       "asistent, na vyšší odborné škole diplomovanou všeobecnou a diplomovanou " +
       "dětskou sestru. Součástí školy je domov mládeže, vlastní jídelna i " +
       "školní poradenské pracoviště.",
-    epizoda: null, // podcast dočasně skrytý
-    epizoda_skryta: {
+    epizoda: {
       cislo: 1,
       nazev: "Zdravotnická škola v Příbrami",
       delka: "15:08",
@@ -341,6 +339,41 @@ const SKOLY = [
    mezititulky do <h2>...</h2>.
    ============================================================ */
 const CLANKY = [
+  {
+    id: "premiera-prvni-dil-je-venku",
+    titulek: "Premiéra: první díl je venku",
+    datum: "2026-09-01",
+    autor: "Michaela Brejchová",
+    perex:
+      "Středoškolská lupa začíná. Hostem prvního dílu je Mgr. Jan Chvál, " +
+      "ředitel zdravotnické školy v Příbrami.",
+    obsah: `
+      <p>Je to venku. Středoškolská lupa má první díl a hostem je <strong>Mgr. Jan
+      Chvál</strong>, ředitel <a href="skola.html?id=szs-voszs-pribram">Střední
+      zdravotnické školy a Vyšší odborné školy zdravotnické v Příbrami</a>.</p>
+      <p>Rozhovor trvá čtvrt hodiny. Ptáme se v něm na to, co se z webu školy
+      nevyčte — bez připravených odpovědí a bez marketingových frází.</p>
+      <h2>Proč zrovna zdravotnická škola</h2>
+      <p>Škola sídlí v centru Příbrami a nabízí čtyři maturitní obory: praktická
+      sestra, zdravotnické lyceum, masér ve zdravotnictví a nutriční asistent.
+      Na vyšší odborné škole pak diplomovanou všeobecnou a diplomovanou dětskou
+      sestru — dá se tedy pokračovat pod jednou střechou. Součástí školy je domov
+      mládeže, vlastní jídelna i školní poradenské pracoviště.</p>
+      <p>Zdravotnictví je obor, kde si člověk vybírá i kus životního směru. O to
+      větší smysl dává slyšet o něm od někoho, kdo tu školu vede.</p>
+      <h2>Kde si epizodu pustíte</h2>
+      <p>Celý díl najdete v <a href="skola.html?id=szs-voszs-pribram">profilu
+      školy</a> tady na webu. Ve stejném profilu je i <strong>videoreportáž přímo
+      ze školy</strong> — jestli chcete nejdřív vidět, jak to tam vypadá, začněte
+      u ní.</p>
+      <h2>Co bude dál</h2>
+      <p>U jednoho dílu nezůstane. V databázi je zatím jedenáct škol ze tří krajů
+      a další rozhovory se chystají. Nejjednodušší je projít si
+      <a href="skoly.html">mapu</a> a podívat se, jestli mezi nimi není i ta vaše.</p>
+      <p>Učíte na střední škole a chcete být v databázi taky?
+      <a href="pro-skoly.html">Ozvěte se nám</a>.</p>
+    `,
+  },
   {
     id: "spoustime-stredoskolskou-lupu",
     titulek: "Spouštíme Středoškolskou lupu",
