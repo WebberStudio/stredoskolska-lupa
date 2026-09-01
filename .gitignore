@@ -1,7 +1,4 @@
-# Přihlašovací údaje do administrace zůstávají jen v tomto počítači.
-# Otisky hesel nemají co dělat ve veřejném repozitáři — na web se
-# nahrávají ručně (viz návod v administraci).
-js/admin-ucty.js
+# Účty do administrace žijí na serveru (Cloudflare KV), ne v repozitáři.
 
 # systémové soubory
 Thumbs.db

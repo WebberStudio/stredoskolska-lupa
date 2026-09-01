@@ -1,11 +1,17 @@
 /* ============================================================
    STŘEDOŠKOLSKÁ LUPA — ADMINISTRACE
    ------------------------------------------------------------
-   Lokální nástroj pro správu obsahu. Edituje js/data.js:
-   • v Chromu/Edgi se umí propojit se složkou webu a ukládat
-     přímo do ní (včetně fotek škol),
-   • jinde vygeneruje data.js ke stažení.
-   Tento soubor není potřeba nahrávat na hosting.
+   Nástroj pro správu obsahu. Veškerý obsah webu je v js/data.js,
+   administrace ho edituje — nic víc.
+
+   • Na adrese webu se změny publikují tlačítkem „Publikovat na
+     web" (worker.js je uloží do repozitáře, Cloudflare přestaví).
+     Stejnou cestou se nahrávají i fotky škol.
+   • Při vývoji na localhostu se místo toho ukládá do složky webu
+     (Chrome/Edge) nebo se data.js stáhne.
+
+   Přístup hlídá server — bez přihlášení se tenhle soubor vůbec
+   nevydá (viz worker.js a js/admin-auth.js).
    ============================================================ */
 (function () {
   "use strict";
@@ -135,77 +141,6 @@ const CLANKY = ${jsVal(stav.clanky, "")};
 `);
   }
 
-  /* ---------- Účty do administrace ---------- */
-  function generujUctyJs() {
-    const radky = (AUTH ? AUTH.ucty : []).map((u) =>
-      "  { email: " + JSON.stringify(u.email) +
-      ", sul: " + JSON.stringify(u.sul) +
-      ", hash: " + JSON.stringify(u.hash) +
-      ", iterace: " + (u.iterace || 250000) +
-      ", vytvoren: " + JSON.stringify(u.vytvoren || dnes()) + " },"
-    ).join("\n");
-    return (
-`/* ============================================================
-   PŘIHLAŠOVACÍ ÚDAJE DO ADMINISTRACE
-   ------------------------------------------------------------
-   Hesla tu NEJSOU uložena — jen jejich otisk (hash), ze kterého
-   heslo nejde zpětně přečíst.
-
-   Účty se spravují v administraci (záložka „Účty").
-   Prázdný seznam = při dalším otevření si nastavíte přístup znovu.
-
-   Vygenerováno administrací ${dnes()}.
-   ============================================================ */
-const ADMIN_UCTY = [
-${radky}
-];
-`);
-  }
-
-  async function ulozUcty(tise) {
-    const text = generujUctyJs();
-    if (naWebu) {
-      try {
-        await publikovatSoubor("js/admin-ucty.js", text, "Úprava přístupů do administrace");
-        if (!tise) toast("Účty publikovány ✓", "ok");
-        return true;
-      } catch (e) {
-        toast("Uložení účtů selhalo: " + (e && e.message ? e.message : e), "chyba");
-        return false;
-      }
-    }
-    if (!slozka) {
-      if (fsPodpora) {
-        const ok = await pripojitSlozku();
-        if (!ok) {
-          if (!tise) toast("Účet je zatím jen v tomhle okně — uložte ho propojením složky webu.", "chyba");
-          return false;
-        }
-      } else {
-        stahniUcty();
-        return true;
-      }
-    }
-    try {
-      await zapisSoubor(["js", "admin-ucty.js"], text);
-      if (!tise) toast("Účty uloženy do js/admin-ucty.js ✓", "ok");
-      return true;
-    } catch (e) {
-      toast("Uložení účtů selhalo: " + (e && e.message ? e.message : e), "chyba");
-      return false;
-    }
-  }
-
-  function stahniUcty() {
-    const blob = new Blob([generujUctyJs()], { type: "text/javascript;charset=utf-8" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "admin-ucty.js";
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-    toast("Staženo — soubor nahraďte ve složce webu: js/admin-ucty.js", "ok");
-  }
-
   /* ---------- Publikování rovnou na web (přes server) ----------
      Funguje jen tam, kde běží serverová část — tedy na ostré adrese,
      ne při otevření administrace z disku. */
@@ -224,6 +159,17 @@ ${radky}
       throw new Error(data.chyba || ("Server odpověděl " + odpoved.status));
     }
     return data;
+  }
+
+  /** Fotku pošleme na web rovnou — obrázek se do data.js nevejde. */
+  async function publikovatObrazek(cesta, soubor) {
+    const base64 = await new Promise((hotovo, chyba) => {
+      const ctecka = new FileReader();
+      ctecka.onload = () => hotovo(String(ctecka.result).split(",")[1] || "");
+      ctecka.onerror = () => chyba(new Error("Soubor se nepodařilo přečíst."));
+      ctecka.readAsDataURL(soubor);
+    });
+    return publikovatSoubor(cesta, base64, "Fotka školy z administrace");
   }
 
   async function publikovatVse() {
@@ -418,7 +364,11 @@ ${radky}
           '<span class="ar-info"><span class="ar-nazev">' + esc(s.nazev) + "</span>" +
           '<span class="ar-meta">' + esc(s.mesto) + " · " + esc(KRAJE[s.kraj] || s.kraj) + " · " + esc(TYPY_SKOL[s.typ] || s.typ) + "</span></span>" +
           '<span class="ar-stav">' +
-            (ep ? '<span class="badge-time">Ep. ' + esc(String(ep.cislo)) + "</span>" : '<span class="badge-soon">Bez epizody</span>') +
+            (ep
+              ? '<span class="badge-time">Ep. ' + esc(String(ep.cislo)) + "</span>"
+              : s.reportaz && s.reportaz.youtube
+                ? '<span class="badge-time">Reportáž</span>'
+                : '<span class="badge-soon">Nic natočeného</span>') +
             '<span class="kr-sipka" aria-hidden="true">→</span>' +
           "</span>" +
         "</button>"
@@ -464,8 +414,12 @@ ${radky}
           "</select></div>" +
           '<div class="field"><label for="f-web">Web školy</label><input id="f-web" type="text" value="' + esc(s.web || "") + '" placeholder="www.skola.cz"></div>' +
           '<div class="field"><label for="f-foto">Fotka (cesta ve webu)</label><input id="f-foto" type="text" value="' + esc(s.foto || "") + '" placeholder="assets/skoly/nazev.jpg">' +
-            (fsPodpora
-              ? '<input id="f-foto-soubor" type="file" accept="image/*" hidden><button type="button" class="btn btn--ghost" id="btn-foto" style="padding:8px 12px;font-size:10.5px">Nahrát fotku do webu…</button><span class="napoveda">Uloží se do assets/skoly/ (potřeba připojená složka webu).</span>'
+            (naWebu || fsPodpora
+              ? '<input id="f-foto-soubor" type="file" accept="image/jpeg,image/png,image/webp,image/avif" hidden>' +
+                '<button type="button" class="btn btn--ghost" id="btn-foto" style="padding:8px 12px;font-size:10.5px">Nahrát fotku…</button>' +
+                '<span class="napoveda">' + (naWebu
+                  ? "Uloží se rovnou na web do assets/skoly/ (max 6 MB)."
+                  : "Uloží se do assets/skoly/ (potřeba připojená složka webu).") + "</span>"
               : '<span class="napoveda">Soubor nakopírujte do assets/skoly/ a sem napište cestu.</span>') +
           "</div>" +
           '<div class="field full"><label for="f-popis">Popis školy</label><textarea id="f-popis" placeholder="Pár vět o škole…">' + esc(s.popis || "") + "</textarea></div>" +
@@ -541,21 +495,35 @@ ${radky}
     $("#form-skola").addEventListener("input", obnovNahled);
     obnovNahled();
 
-    if (fsPodpora && $("#btn-foto")) {
+    if ($("#btn-foto")) {
       $("#btn-foto").addEventListener("click", () => $("#f-foto-soubor").click());
       $("#f-foto-soubor").addEventListener("change", async () => {
         const soubor = $("#f-foto-soubor").files[0];
         if (!soubor) return;
-        if (!slozka && !(await pripojitSlozku())) return;
+        if (soubor.size > 6 * 1024 * 1024) {
+          toast("Fotka má " + Math.round(soubor.size / 1048576) + " MB — zmenšete ji pod 6 MB.", "chyba");
+          return;
+        }
+        if (!naWebu && !slozka && !(await pripojitSlozku())) return;
+
         const pripona = (soubor.name.match(/\.(jpe?g|png|webp|avif)$/i) || [".jpg"])[0].toLowerCase();
         const jmeno = (s.id || slug($("#f-nazev").value + "-" + $("#f-mesto").value) || "skola") + pripona;
+        const tlacitko = $("#btn-foto");
+        tlacitko.disabled = true;
+        tlacitko.textContent = "Nahrávám…";
         try {
-          await zapisSoubor(["assets", "skoly", jmeno], soubor);
+          if (naWebu) await publikovatObrazek("assets/skoly/" + jmeno, soubor);
+          else await zapisSoubor(["assets", "skoly", jmeno], soubor);
           $("#f-foto").value = "assets/skoly/" + jmeno;
           obnovNahled();
-          toast("Fotka uložena do assets/skoly/" + jmeno, "ok");
+          toast(naWebu
+            ? "Fotka nahraná na web — zobrazí se během chvilky."
+            : "Fotka uložena do assets/skoly/" + jmeno, "ok");
         } catch (e) {
           toast("Nahrání fotky selhalo: " + (e && e.message ? e.message : e), "chyba");
+        } finally {
+          tlacitko.disabled = false;
+          tlacitko.textContent = "Nahrát fotku…";
         }
       });
     }
@@ -810,9 +778,10 @@ ${radky}
           "</fieldset>" +
         "</form>" +
         '<div class="adm-navod" style="padding-top:0">' +
-          "<p class=\"napoveda\">Hesla se nikam neposílají — ukládá se jen jejich otisk do souboru " +
-          "<code>js/admin-ucty.js</code>. Zapomenuté heslo nejde obnovit; smazáním obsahu toho souboru " +
-          "se administrace vrátí do stavu „nastavte si přístup\".</p>" +
+          "<p class=\"napoveda\">Změny se ukládají hned — nemusíte nic publikovat. Hesla se nikam " +
+          "neposílají: odchází jen jejich otisk, ze kterého heslo zpětně přečíst nejde. " +
+          "Zapomenuté heslo se obnovuje na přihlašovací obrazovce odkazem " +
+          "<strong>Zapomenuté heslo?</strong> — potřebujete k tomu zakládací klíč z Cloudflare.</p>" +
         "</div>" +
       "</div>";
 
@@ -824,7 +793,23 @@ ${radky}
       return true;
     }
 
-    $("#form-ucet").addEventListener("submit", async (evt) => {
+    // vytvoření otisku hesla chvíli trvá — po tu dobu tlačítko nereaguje
+    async function pracuj(tlacitko, popis, prace) {
+      const puvodni = tlacitko.textContent;
+      tlacitko.disabled = true;
+      tlacitko.textContent = "Ukládám…";
+      try {
+        await prace();
+        render();
+        toast(popis, "ok");
+      } catch (e) {
+        toast("Nepovedlo se: " + (e && e.message ? e.message : e), "chyba");
+        tlacitko.disabled = false;
+        tlacitko.textContent = puvodni;
+      }
+    }
+
+    $("#form-ucet").addEventListener("submit", (evt) => {
       evt.preventDefault();
       const email = $("#u-email").value.trim();
       const heslo = $("#u-heslo").value;
@@ -835,36 +820,26 @@ ${radky}
         chyby.push("Účet s tímhle e-mailem už existuje.");
       }
       if (chybaBox("chyby-ucet", chyby)) return;
-      AUTH.ucty.push(await AUTH.vytvorUcet(email, heslo));
-      await ulozUcty();
-      render();
-      toast("Účet " + email + " přidán");
+      pracuj($("#form-ucet button[type=submit]"), "Účet " + email + " přidán",
+             () => AUTH.pridatUcet(email, heslo));
     });
 
-    $("#form-heslo").addEventListener("submit", async (evt) => {
+    $("#form-heslo").addEventListener("submit", (evt) => {
       evt.preventDefault();
       const a = $("#h-nove").value, b = $("#h-nove2").value;
       const chyby = [];
       if (a.length < 8) chyby.push("Heslo musí mít aspoň 8 znaků.");
       if (a !== b) chyby.push("Hesla se neshodují.");
       if (chybaBox("chyby-heslo", chyby)) return;
-      const i = AUTH.ucty.findIndex((u) => AUTH.normEmail(u.email) === AUTH.normEmail(AUTH.email));
-      if (i < 0) { chybaBox("chyby-heslo", ["Váš účet už v seznamu není."]); return; }
-      AUTH.ucty[i] = await AUTH.vytvorUcet(AUTH.email, a);
-      await ulozUcty();
-      render();
-      toast("Heslo změněno");
+      pracuj($("#form-heslo button[type=submit]"), "Heslo změněno",
+             () => AUTH.zmenitHeslo(a));
     });
 
     $$(".smazat-ucet", obsah).forEach((b) =>
-      b.addEventListener("click", async () => {
-        const i = +b.getAttribute("data-i");
-        const u = AUTH.ucty[i];
+      b.addEventListener("click", () => {
+        const u = ucty[+b.getAttribute("data-i")];
         if (!u || !confirm("Opravdu odebrat přístup pro „" + u.email + "“?")) return;
-        AUTH.ucty.splice(i, 1);
-        await ulozUcty();
-        render();
-        toast("Účet odebrán");
+        pracuj(b, "Účet odebrán", () => AUTH.smazatUcet(u.email));
       })
     );
   }
@@ -876,27 +851,23 @@ ${radky}
         "<h3>Jak administrace funguje</h3>" +
         "<p>Celý obsah webu (školy, epizody, blog, kontakty) žije v jediném souboru <code>js/data.js</code>. " +
         "Administrace ho edituje — nic víc, nic míň. Web nepotřebuje databázi ani programátora.</p>" +
-        "<h3>Doporučený postup (Chrome nebo Edge)</h3>" +
+        "<h3>Běžný postup — přímo na webu</h3>" +
         "<ol>" +
-          "<li>Klikněte nahoře na <strong>Propojit složku webu</strong> a vyberte složku, ve které je web (ta s <code>index.html</code>).</li>" +
+          "<li>Přihlaste se na <code>www.stredoskolska-lupa.cz/admin</code>.</li>" +
           "<li>Udělejte změny — přidejte školu, napište článek…</li>" +
-          "<li>Klikněte na <strong>Uložit změny</strong> — soubor <code>js/data.js</code> se přepíše přímo ve složce. I fotky škol se ukládají samy (do <code>assets/skoly/</code>).</li>" +
-          "<li>Nahrajte změněné soubory na hosting (FTP / správce souborů) — minimálně <code>js/data.js</code>, případně nové fotky.</li>" +
+          "<li>Klikněte na <strong>Publikovat na web</strong>. Do minuty se změna sama objeví návštěvníkům.</li>" +
         "</ol>" +
-        "<h3>Jiný prohlížeč (Firefox, Safari…)</h3>" +
-        "<p>Tlačítko <strong>Stáhnout data.js</strong> uloží soubor do Stažených — pak jím nahraďte <code>js/data.js</code> ve složce webu a nahrajte na hosting.</p>" +
+        "<p class=\"napoveda\">Fotku ředitele nahrajete přímo v detailu školy tlačítkem " +
+        "<strong>Nahrát fotku…</strong> — uloží se rovnou na web (max 6 MB).</p>" +
+        "<h3>Administrace je jen na webu</h3>" +
+        "<p>Otevřít <code>admin.html</code> ze složky v počítači už nejde — přihlášení kontroluje " +
+        "server, a ten běží jen na adrese webu. Administrace tak nejde obejít ani okopírováním souborů.</p>" +
         "<h3>Přihlášení a přístup</h3>" +
-        "<p>Administrace je zamčená e-mailem a heslem (záložka <strong>Účty</strong> — tam se dají " +
-        "přidat další lidé nebo změnit heslo). Přihlášení platí 8 hodin nebo do zavření prohlížeče.</p>" +
-        "<p>Hlavní ochranou ale je, že <strong>administrace vůbec není na internetu</strong> — soubory " +
-        "<code>admin.html</code>, <code>js/admin*.js</code> a <code>css/admin.css</code> se na hosting " +
-        "nenahrávají. Kdo nemá přístup k tomuhle počítači, k administraci se nedostane.</p>" +
+        "<p>Přihlašuje se e-mailem a heslem. Kontrolu dělá <strong>server</strong>, ne prohlížeč — bez správného hesla se administrace vůbec nenačte a v adrese se nedá nic obejít. Přihlášení platí 8 hodin.</p>" +
+        "<p>Další lidi přidáte v záložce <strong>Účty</strong>; tam se také mění vlastní heslo. Účty jsou uložené na serveru (Cloudflare KV), ne v souboru na webu.</p>" +
+        "<p>Zapomenuté heslo se obnovuje na přihlašovací obrazovce odkazem <strong>Zapomenuté heslo?</strong>. Potřebujete k tomu <strong>zakládací klíč</strong> — tajnou proměnnou <code>ADMIN_KLIC</code> v Cloudflare. Držte ji stranou, je to poslední záchrana.</p>" +
         "<h3>Publikování změn</h3>" +
-        "<p>Když administraci otevřete na adrese webu, máte nahoře tlačítko " +
-        "<strong>Publikovat na web</strong>. Uloží změny rovnou na web — do minuty se " +
-        "samy projeví, nemusíte nic nahrávat ručně.</p>" +
-        "<p>Když administraci otevřete u sebe v počítači, publikovat nejde; tam se " +
-        "ukládá do složky webu tlačítkem <strong>Uložit změny</strong>.</p>" +
+        "<p>Tlačítko <strong>Publikovat na web</strong> uloží obsah do repozitáře webu; Cloudflare si ho sám vyzvedne a web přestaví. Nic se nenahrává ručně.</p>" +
         "<h3>Po nahrání na hosting změnu hned nevidím</h3>" +
         "<p>Prohlížeč si soubory drží v paměti zhruba <strong>10 minut</strong>. Když chcete výsledek " +
         "vidět ihned, načtěte stránku znovu přes <code>Ctrl + Shift + R</code> (na Macu <code>Cmd + Shift + R</code>). " +
@@ -907,9 +878,6 @@ ${radky}
         "<h3>Epizody</h3>" +
         "<p>Do polí YouTube a Spotify klidně vložte celý odkaz z adresního řádku — administrace si z něj vytáhne, co potřebuje. " +
         "Dokud jsou pole prázdná, na webu se u epizody ukazuje ohláška „záznam brzy doplníme“.</p>" +
-        "<h3>Co nenahrávat na hosting</h3>" +
-        "<p>Soubory administrace: <code>admin.html</code>, <code>js/admin.js</code>, <code>css/admin.css</code>. " +
-        "Nic zlého se nestane, ani když tam budou (admin na hostingu neumí nic přepsat) — ale nemusí tam být.</p>" +
       "</div></div>";
   }
 
@@ -971,15 +939,7 @@ ${radky}
       if (slozka) slozka.textContent = "Publikuje se přímo na web";
     }
 
-    if (auth.prvniUcet) {
-      ui.tab = "ucty";
-      // účet vznikl v prohlížeči — hned ho zapsat do souboru
-      ulozUcty(true).then((ok) => {
-        toast(ok
-          ? "Účet vytvořen a uložen do js/admin-ucty.js"
-          : "Účet zatím platí jen v tomhle okně — uložte ho v záložce Účty.", ok ? "ok" : "chyba");
-      });
-    } else if (zDraftu) {
+    if (zDraftu) {
       toast("Načteny rozpracované změny z minula — Uložit změny je zapíše do webu.");
     }
 

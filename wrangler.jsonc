@@ -19,6 +19,15 @@
     "run_worker_first": true
   },
 
+  // Úložiště přihlašovacích údajů do administrace.
+  // Účty se sem zapisují ze záložky „Účty" — v repozitáři nejsou.
+  "kv_namespaces": [
+    {
+      "binding": "ADMIN_KV",
+      "id": "caf8880eabb3408f9e0012bce239defb"
+    }
+  ],
+
   "observability": {
     "enabled": true
   }
