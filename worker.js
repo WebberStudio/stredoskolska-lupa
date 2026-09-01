@@ -499,6 +499,10 @@ async function prihlasovaciStranka(env) {
       "Content-Type": "text/html; charset=utf-8",
       "Cache-Control": "no-store",
       "X-Robots-Tag": "noindex, nofollow",
+      // přihlašovací formulář nemá co dělat v cizím rámu
+      "X-Frame-Options": "DENY",
+      "X-Content-Type-Options": "nosniff",
+      "Referrer-Policy": "no-referrer",
     },
   });
 }
