@@ -5,8 +5,9 @@
    administrace ho edituje — nic víc.
 
    • Na adrese webu se změny publikují tlačítkem „Publikovat na
-     web" (worker.js je uloží do repozitáře, Cloudflare přestaví).
-     Stejnou cestou se nahrávají i fotky škol.
+     web" — worker.js je uloží do úložiště Cloudflare (KV) a web
+     je odtud čte. Stejnou cestou se nahrávají i fotky škol.
+     Soubor js/data.js v repozitáři je jen výchozí stav a záloha.
    • Při vývoji na localhostu se místo toho ukládá do složky webu
      (Chrome/Edge) nebo se data.js stáhne.
 
@@ -124,10 +125,11 @@
 `/* ============================================================
    STŘEDOŠKOLSKÁ LUPA — DATA WEBU
    ------------------------------------------------------------
-   Tenhle soubor je jediný zdroj obsahu webu. Nejpohodlněji se
-   edituje přes admin.html (Administrace) — ručně jen opatrně.
+   Tenhle soubor je celý obsah webu. Nejpohodlněji se edituje
+   v administraci (/admin) — ručně jen opatrně.
 
-   Po každé změně nahrajte soubor na hosting (js/data.js).
+   Na webu platí verze publikovaná z administrace (úložiště KV);
+   soubor v repozitáři je výchozí stav a záloha.
    Vygenerováno administrací ${dnes()}.
    ============================================================ */
 
@@ -156,11 +158,23 @@ const CLANKY = ${jsVal(stav.clanky, "")};
   // poslední krok se na webu jmenuje jinak než v lokální administraci
   const dokonceni = () => naWebu ? "nezapomeňte Publikovat na web" : "nezapomeňte Uložit změny";
 
+  // otisk verze obsahu, nad kterou pracujeme — server odmítne přepsat novější
+  let verzeObsahu = null;
+
+  async function nactiStavObsahu() {
+    try {
+      const o = await fetch("/admin/api/stav-obsahu");
+      const d = await o.json();
+      if (o.ok && d.ok) { verzeObsahu = d.verze || null; return d; }
+    } catch (e) { /* stav je jen informativní */ }
+    return null;
+  }
+
   async function publikovatSoubor(cesta, obsah, popis) {
     const odpoved = await fetch("/admin/publikovat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ soubor: cesta, obsah: obsah, zprava: popis }),
+      body: JSON.stringify({ soubor: cesta, obsah: obsah, zprava: popis, verze: verzeObsahu }),
     });
     let data = {};
     try { data = await odpoved.json(); } catch (e) { /* prázdná odpověď */ }
@@ -185,10 +199,23 @@ const CLANKY = ${jsVal(stav.clanky, "")};
     const tlacitka = [$("#btn-publikovat"), $("#btn-publikovat-2")].filter(Boolean);
     tlacitka.forEach((b) => { b.disabled = true; b.textContent = "Publikuji…"; });
     try {
-      await publikovatSoubor("js/data.js", generujDataJs(),
+      const text = generujDataJs();
+      // než to pustíme ven: vygenerovaný soubor musí projít jako JavaScript
+      // a vrátit všechny části — jinak by web zčernal
+      try {
+        const zk = new Function(text + "\nreturn { NASTAVENI, KRAJE, TYPY_SKOL, SKOLY, CLANKY };")();
+        if (!zk || !Array.isArray(zk.SKOLY) || !Array.isArray(zk.CLANKY) || !zk.NASTAVENI) {
+          throw new Error("chybí část obsahu");
+        }
+      } catch (e) {
+        throw new Error("Vygenerovaný obsah není v pořádku (" + (e && e.message ? e.message : e) +
+                        ") — nepublikuji. Zkuste Zahodit změny a zadat je znovu.");
+      }
+      const vysledek = await publikovatSoubor("js/data.js", text,
         "Aktualizace obsahu z administrace (" + (AUTH ? AUTH.email : "web") + ")");
+      if (vysledek && vysledek.verze) verzeObsahu = vysledek.verze;
       prijmoutUlozeno();
-      toast("Publikováno ✓ Web se během chvilky sám přestaví.", "ok");
+      toast("Publikováno ✓ Na webu se to ukáže do minuty.", "ok");
     } catch (e) {
       toast("Publikování selhalo: " + (e && e.message ? e.message : e), "chyba");
     } finally {
@@ -880,17 +907,17 @@ const CLANKY = ${jsVal(stav.clanky, "")};
         "<p>Další lidi přidáte v záložce <strong>Účty</strong>; tam se také mění vlastní heslo. Účty jsou uložené na serveru (Cloudflare KV), ne v souboru na webu.</p>" +
         "<p>Zapomenuté heslo se obnovuje na přihlašovací obrazovce odkazem <strong>Zapomenuté heslo?</strong>. Potřebujete k tomu <strong>zakládací klíč</strong> — tajnou proměnnou <code>ADMIN_KLIC</code> v Cloudflare. Držte ji stranou, je to poslední záchrana.</p>" +
         "<h3>Publikování změn</h3>" +
-        "<p>Tlačítko <strong>Publikovat na web</strong> uloží obsah do repozitáře webu; Cloudflare si ho sám vyzvedne a web přestaví. Nic se nenahrává ručně.</p>" +
-        "<h3>Po nahrání na hosting změnu hned nevidím</h3>" +
-        "<p>Prohlížeč si soubory drží v paměti zhruba <strong>10 minut</strong>. Když chcete výsledek " +
-        "vidět ihned, načtěte stránku znovu přes <code>Ctrl + Shift + R</code> (na Macu <code>Cmd + Shift + R</code>). " +
-        "Návštěvníkům se nový obsah objeví sám do deseti minut.</p>" +
+        "<p>Tlačítko <strong>Publikovat na web</strong> uloží obsah rovnou do úložiště webu. " +
+        "Nic se nikam nenahrává ani nepřestavuje — na webu se změna ukáže <strong>do minuty</strong>. " +
+        "Když ji nevidíte hned, načtěte stránku znovu (<code>F5</code>).</p>" +
+        "<p>Dva lidé v administraci naráz: kdo by publikoval nad starší verzí, než je venku, " +
+        "dostane upozornění a musí si administraci nejdřív načíst znovu — aby nepřepsal změny " +
+        "toho druhého.</p>" +
         (naWebu
-          ? "<h3>Když publikování hlásí chybu</h3>" +
-            "<p>Tohle tlačítko projde celé spojení s GitHubem krok po kroku a napíše, " +
-            "kde se to zadrhlo. Nic nemění ani nepublikuje.</p>" +
-            '<p><button type="button" class="btn btn--ghost" id="btn-kontrola">Zkontrolovat spojení</button></p>' +
-            '<div id="vysledek-kontroly"></div>'
+          ? "<h3>Co je právě venku</h3>" +
+            '<div id="stav-obsahu"><p class="napoveda">Zjišťuji…</p></div>' +
+            '<p>Záloha: <a href="/admin/api/export" download>stáhnout aktuální obsah webu (data.js)</a>. ' +
+            "Hodí se ji čas od času uložit stranou.</p>"
           : "") +
         "<h3>Rozpracované změny</h3>" +
         "<p>Neuložené změny se drží v prohlížeči (přežijí i zavření okna) a svítí u nich oranžová lišta. " +
@@ -900,43 +927,33 @@ const CLANKY = ${jsVal(stav.clanky, "")};
         "Dokud jsou pole prázdná, na webu se u epizody ukazuje ohláška „záznam brzy doplníme“.</p>" +
       "</div></div>";
 
-    const tlKontrola = $("#btn-kontrola");
-    if (tlKontrola) tlKontrola.addEventListener("click", () => spustKontrolu(tlKontrola));
+    if ($("#stav-obsahu")) vykresliStavObsahu();
   }
 
-  /** Projde spojení s GitHubem a vypíše, kde se to případně zadrhlo. */
-  async function spustKontrolu(tlacitko) {
-    const box = $("#vysledek-kontroly");
-    tlacitko.disabled = true;
-    tlacitko.textContent = "Kontroluji…";
-    box.innerHTML = "";
-    try {
-      const odpoved = await fetch("/admin/api/kontrola", { method: "POST" });
-      const data = await odpoved.json().catch(() => ({}));
-      if (!odpoved.ok || !data.ok) throw new Error(data.chyba || ("Server odpověděl " + odpoved.status));
-
-      const vse = data.kroky.every((k) => k.ok);
-      box.innerHTML =
-        '<div class="adm-panel" style="margin:12px 0">' +
-          data.kroky.map((k) =>
-            '<div class="adm-radek"><span class="ar-info">' +
-              '<span class="ar-nazev">' + (k.ok ? "✓ " : "✗ ") + esc(k.nazev) + "</span>" +
-              '<span class="ar-meta">' + esc(k.popis || "") +
-                (k.stav ? " · odpověď " + k.stav : "") + "</span>" +
-            "</span></div>").join("") +
-        "</div>" +
-        '<p class="napoveda">' + (vse
-          ? "Spojení je v pořádku — publikování by mělo projít."
-          : "Publikování neprojde, dokud se nespraví krok označený ✗.") + "</p>";
-      toast(vse ? "Spojení s GitHubem je v pořádku ✓" : "Kontrola našla problém — čtěte výpis.",
-            vse ? "ok" : "chyba");
-    } catch (e) {
-      box.innerHTML = '<p class="napoveda">Kontrolu se nepodařilo spustit: ' +
-                      esc(e && e.message ? e.message : String(e)) + "</p>";
-    } finally {
-      tlacitko.disabled = false;
-      tlacitko.textContent = "Zkontrolovat spojení";
+  /** Do návodu vypíše, odkud web bere obsah a kdo ho naposledy publikoval. */
+  async function vykresliStavObsahu() {
+    const box = $("#stav-obsahu");
+    const stav = await nactiStavObsahu();
+    if (!box) return;
+    if (!stav) {
+      box.innerHTML = '<p class="napoveda">Stav se nepodařilo zjistit.</p>';
+      return;
     }
+    const kdy = stav.kdy ? new Date(stav.kdy) : null;
+    const kdyText = kdy && !isNaN(kdy)
+      ? kdy.toLocaleDateString("cs-CZ", { day: "numeric", month: "long", year: "numeric" }) +
+        " v " + kdy.toLocaleTimeString("cs-CZ", { hour: "2-digit", minute: "2-digit" })
+      : "";
+    box.innerHTML =
+      '<div class="adm-panel" style="margin:12px 0"><div class="adm-radek"><span class="ar-info">' +
+        '<span class="ar-nazev">' + (stav.zdroj === "uloziste"
+          ? "Obsah publikovaný z administrace"
+          : "Výchozí obsah ze souborů webu") + "</span>" +
+        '<span class="ar-meta">' + (stav.zdroj === "uloziste"
+          ? "naposledy publikováno " + esc(kdyText) + (stav.kdo ? " · " + esc(stav.kdo) : "") +
+            (stav.velikost ? " · " + Math.round(stav.velikost / 1024) + " kB" : "")
+          : "z administrace se zatím nepublikovalo") + "</span>" +
+      "</span></div></div>";
   }
 
   /* ---------- Start ---------- */
@@ -997,6 +1014,8 @@ const CLANKY = ${jsVal(stav.clanky, "")};
       if (slozka) slozka.textContent = "Publikuje se přímo na web";
       const popis = $("#adm-zmeny-popis");
       if (popis) popis.textContent = "● Nepublikované změny";
+      // verze obsahu, nad kterou pracujeme — server podle ní pozná souběžnou změnu
+      nactiStavObsahu();
     }
 
     if (zDraftu) {

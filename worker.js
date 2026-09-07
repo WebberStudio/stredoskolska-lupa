@@ -1,8 +1,8 @@
 /**
  * STŘEDOŠKOLSKÁ LUPA — serverová část webu
  * ---------------------------------------------------------------
- * Veřejný web běží dál jako obyčejné statické stránky. Tenhle
- * skript se stará o tři věci navíc:
+ * Veřejný web běží jako obyčejné statické stránky. Tenhle skript
+ * se stará o tři věci navíc:
  *
  * 1) PŘIHLÁŠENÍ DO ADMINISTRACE. Účty (e-mail + otisk hesla) žijí
  *    v úložišti Cloudflare KV — ne v souboru na webu. Kontrola běží
@@ -11,18 +11,22 @@
  * 2) SPRÁVA ÚČTŮ. Přidání kolegy, změna vlastního hesla i odebrání
  *    přístupu se dělá v administraci a hned se to zapíše do KV.
  *
- * 3) PUBLIKOVÁNÍ. Administrace umí uložit obsah rovnou na web —
- *    zapíše ho do repozitáře na GitHubu, odkud si ho Cloudflare
- *    vyzvedne a web přestaví.
+ * 3) PUBLIKOVÁNÍ. Administrace uloží obsah (js/data.js a fotky škol)
+ *    rovnou do KV a web ho odtud čte. Žádný GitHub, žádný token,
+ *    žádné přestavování — změna je venku do minuty.
  *
- * Co je potřeba nastavit v Cloudflare (Settings → Variables and Secrets):
- *   ADMIN_KLIC    — zakládací klíč. Slouží k vytvoření prvního účtu
- *                   a k obnově zapomenutého hesla. Typ: Secret.
- *   GITHUB_TOKEN  — token s právem „Contents: read and write" na
- *                   repozitář webu. Typ: Secret. (Bez něj funguje
- *                   všechno kromě tlačítka Publikovat na web.)
- * A jedno úložiště (Settings → Bindings → KV namespace):
- *   ADMIN_KV      — namespace „stredoskolska-lupa-admin".
+ *    KDE JE OBSAH: js/data.js v repozitáři je jen VÝCHOZÍ STAV a
+ *    záloha. Jakmile se z administrace jednou publikuje, platí verze
+ *    v KV (klíč web:js/data.js) a soubor v repozitáři se na webu
+ *    neprojeví. Chcete-li obsah upravit ručně, buď přes administraci,
+ *    nebo zapsat do KV (wrangler kv key put …). Záloha aktuálního
+ *    obsahu: /admin/api/export (po přihlášení) nebo wrangler kv key get.
+ *
+ * Co je potřeba nastavit v Cloudflare:
+ *   ADMIN_KLIC  — zakládací klíč (Settings → Variables and Secrets,
+ *                 typ Secret). Vytvoří první účet, obnovuje heslo.
+ *   ADMIN_KV    — KV namespace „stredoskolska-lupa-admin" (binding
+ *                 ve wrangler.jsonc). Drží účty i publikovaný obsah.
  *
  * Poznámka k heslům: heslo se na server nikdy neposílá. Prohlížeč
  * z něj spočítá otisk (PBKDF2-SHA256, 250 000 opakování) a posílá
@@ -43,8 +47,9 @@ const POVOLENE_SOUBORY = ["js/data.js"];
 const POVOLENE_OBRAZKY = /^assets\/skoly\/[a-z0-9][a-z0-9._-]{0,60}\.(jpe?g|png|webp|avif)$/;
 const MAX_OBRAZEK = 8 * 1024 * 1024;   // délka base64, tj. zhruba 6 MB souboru
 
-const VYCHOZI_REPO = "WebberStudio/stredoskolska-lupa";
-const VYCHOZI_VETEV = "main";
+/* publikovaný obsah leží v KV pod klíčem web:<cesta souboru> */
+const PREFIX_OBSAHU = "web:";
+const SOUBOR_DAT = "js/data.js";
 
 const KLIC_UCTY = "ucty";
 const COOKIE = "lupa_relace";
@@ -61,7 +66,11 @@ export default {
       const relace = await overRelaci(request, env);
       if (!relace) return json({ chyba: "Nejste přihlášeni." }, 401);
       if (request.method !== "POST") return json({ chyba: "Očekává se POST." }, 405);
-      return publikovat(request, env, relace);
+      try {
+        return await publikovat(request, env, relace);
+      } catch (e) {
+        return json({ chyba: "Chyba serveru: " + popisChyby(e) }, 500);
+      }
     }
 
     // --- pomocné soubory ven nepatří ---
@@ -82,6 +91,13 @@ export default {
       return upravena;
     }
 
+    // --- obsah publikovaný z administrace má přednost před souborem v repozitáři ---
+    const soubor = cesta.slice(1);
+    if (env.ADMIN_KV && (soubor === SOUBOR_DAT || POVOLENE_OBRAZKY.test(soubor))) {
+      const zUloziste = await obsahZUloziste(request, env, soubor);
+      if (zUloziste) return zUloziste;
+    }
+
     // --- všechno ostatní je běžný veřejný web ---
     return env.ASSETS.fetch(request);
   },
@@ -92,7 +108,9 @@ export default {
    ============================================================ */
 
 async function api(request, env, cesta) {
-  if (request.method !== "POST" && cesta !== "/admin/api/ucty") {
+  const jenCteni = cesta === "/admin/api/ucty" || cesta === "/admin/api/stav-obsahu" ||
+                   cesta === "/admin/api/export";
+  if (request.method !== "POST" && !jenCteni) {
     return json({ chyba: "Očekává se POST." }, 405);
   }
   if (!env.ADMIN_KV) {
@@ -113,7 +131,8 @@ async function api(request, env, cesta) {
       case "/admin/api/ucty":       return await ucty(request, env, telo);
       case "/admin/api/ucty/heslo": return await zmenaHesla(request, env, telo);
       case "/admin/api/ucty/smazat":return await smazaniUctu(request, env, telo);
-      case "/admin/api/kontrola":   return await kontrolaGitHubu(request, env);
+      case "/admin/api/stav-obsahu":return await stavObsahu(request, env);
+      case "/admin/api/export":     return await exportObsahu(request, env);
       default: return json({ chyba: "Neznámý požadavek." }, 404);
     }
   } catch (e) {
@@ -322,82 +341,43 @@ async function overRelaci(request, env) {
 }
 
 /* ============================================================
-   Kontrola spojení s GitHubem
+   Publikovaný obsah (KV)
    ------------------------------------------------------------
-   Projde po krocích totéž co publikování, jen nic nezapisuje.
-   Token samotný se ven nedostane — jen to, co o něm říká GitHub.
+   Klíč web:js/data.js drží celý obsah webu, web:assets/skoly/…
+   fotky škol. U každého záznamu je v metadatech otisk (ETag),
+   typ, kdy a kdo ho publikoval.
    ============================================================ */
 
-async function kontrolaGitHubu(request, env) {
-  if (!(await overRelaci(request, env))) return json({ chyba: "Nejste přihlášeni." }, 401);
+/** Vydá soubor z KV, když tam je. Jinak null a web sáhne do repozitáře. */
+async function obsahZUloziste(request, env, soubor) {
+  const zaznam = await env.ADMIN_KV.getWithMetadata(PREFIX_OBSAHU + soubor, { type: "arrayBuffer" });
+  if (!zaznam || !zaznam.value) return null;
 
-  const syrovy = String(env.GITHUB_TOKEN || "");
-  const token = syrovy.trim();
-  const repo = env.GITHUB_REPO || VYCHOZI_REPO;
-  const vetev = env.GITHUB_VETEV || VYCHOZI_VETEV;
-  const kroky = [];
+  const meta = zaznam.metadata || {};
+  const otisk = meta.otisk || hex(await crypto.subtle.digest("SHA-256", zaznam.value)).slice(0, 32);
+  const etag = '"' + otisk + '"';
+  const jeData = soubor === SOUBOR_DAT;
 
-  if (!token) {
-    return json({
-      ok: true, repo, vetev,
-      kroky: [{ nazev: "Token v Cloudflare", ok: false,
-                popis: "GITHUB_TOKEN není nastavený." }],
-    });
-  }
+  const hlavicky = {
+    "Content-Type": jeData ? "text/javascript; charset=utf-8" : (meta.typ || typPodlePripony(soubor)),
+    // data.js: prohlížeč se vždycky zeptá, jestli nemáme novější (a dostane 304, když ne);
+    // fotky se mění zřídka, těm stačí den
+    "Cache-Control": jeData ? "public, max-age=0, must-revalidate" : "public, max-age=86400",
+    "ETag": etag,
+    "X-Content-Type-Options": "nosniff",
+    "X-Zdroj-Obsahu": "administrace",
+  };
 
-  kroky.push({
-    nazev: "Token v Cloudflare",
-    ok: syrovy === token,
-    popis: syrovy === token
-      ? "Nastavený, " + token.length + " znaků."
-      : "Nastavený, ale má na začátku nebo konci mezeru či konec řádku — " +
-        "vložte ho v Cloudflare znovu bez nich.",
-  });
-
-  async function krok(nazev, adresa, vyhodnot) {
-    try {
-      const o = await fetch(adresa, { headers: hlavickyGitHubu(token) });
-      const zprava = o.ok ? "" : await zpravaGitHubu(o);
-      let data = null;
-      if (o.ok) { try { data = JSON.parse(await o.text()); } catch (e) { /* nevadí */ } }
-      kroky.push(Object.assign({ nazev, ok: o.ok, stav: o.status },
-        o.ok ? (vyhodnot ? vyhodnot(data) : { popis: "V pořádku." })
-             : { popis: potizSGitHubem(o.status, repo, zprava) }));
-      return o.ok;
-    } catch (e) {
-      kroky.push({ nazev, ok: false, popis: "Spojení selhalo: " + (e && e.message ? e.message : e) });
-      return false;
-    }
-  }
-
-  await krok("Komu token patří", "https://api.github.com/user",
-    (d) => ({ popis: d && d.login ? "Účet " + d.login : "V pořádku." }));
-
-  const vidiRepo = await krok("Přístup k repozitáři " + repo,
-    "https://api.github.com/repos/" + repo,
-    (d) => {
-      const zapis = d && d.permissions && d.permissions.push;
-      return {
-        ok: !!zapis,
-        popis: zapis
-          ? "Vidí ho a smí do něj zapisovat."
-          : "Vidí ho, ale NEMÁ právo zápisu — token potřebuje „Contents: Read and write\".",
-      };
-    });
-
-  if (vidiRepo) {
-    await krok("Čtení js/data.js na větvi " + vetev,
-      "https://api.github.com/repos/" + repo + "/contents/js/data.js?ref=" + encodeURIComponent(vetev));
-  }
-
-  return json({ ok: true, repo, vetev, kroky });
+  const podminka = (request.headers.get("If-None-Match") || "").replace(/^W\//, "");
+  if (podminka === etag) return new Response(null, { status: 304, headers: hlavicky });
+  return new Response(zaznam.value, { status: 200, headers: hlavicky });
 }
 
-/* ============================================================
-   Publikování na web (zápis do repozitáře na GitHubu)
-   ============================================================ */
-
 async function publikovat(request, env, relace) {
+  if (!env.ADMIN_KV) {
+    return json({ chyba: "Úložiště obsahu není v Cloudflare připojené (chybí binding ADMIN_KV)." }, 501);
+  }
+
   let telo;
   try {
     telo = await request.json();
@@ -415,67 +395,106 @@ async function publikovat(request, env, relace) {
   if (typeof obsah !== "string" || !obsah.trim()) {
     return json({ chyba: "Obsah souboru je prázdný." }, 400);
   }
+
+  let bajty, typ;
   if (jeObrazek) {
-    // obrázek chodí rovnou v base64 — ověříme, že to base64 opravdu je
+    // obrázek chodí v base64 — ověříme, že to base64 opravdu je
     if (!/^[A-Za-z0-9+/]+={0,2}$/.test(obsah)) {
       return json({ chyba: "Poškozená data obrázku." }, 400);
     }
     if (obsah.length > MAX_OBRAZEK) {
       return json({ chyba: "Fotka je moc velká — zmenšete ji pod 6 MB." }, 413);
     }
-  }
+    bajty = zB64url(obsah);
+    typ = typPodlePripony(soubor);
+  } else {
+    const potiz = zkontrolujDataJs(obsah);
+    if (potiz) return json({ chyba: potiz }, 400);
 
-  const token = tokenGitHubu(env);
-  if (!token) {
-    return json({ chyba: "Publikování zatím není nastavené — v Cloudflare chybí GITHUB_TOKEN." }, 501);
-  }
-
-  const repo = env.GITHUB_REPO || VYCHOZI_REPO;
-  const vetev = env.GITHUB_VETEV || VYCHOZI_VETEV;
-  const adresa = "https://api.github.com/repos/" + repo + "/contents/" + soubor;
-  const hlavicky = hlavickyGitHubu(token, true);
-
-  try {
-    // GitHub vyžaduje otisk současné verze souboru, aby nepřepsal cizí změnu
-    let sha;
-    const stavajici = await fetch(adresa + "?ref=" + encodeURIComponent(vetev), {
-      headers: hlavickyGitHubu(token),
-    });
-    if (stavajici.status === 200) {
-      sha = (await stavajici.json()).sha;
-    } else if (stavajici.status !== 404) {
+    // Dva lidé v administraci naráz: kdo publikuje nad starší verzí,
+    // než je venku, nesmí tu novější tiše přepsat.
+    const soucasny = await env.ADMIN_KV.getWithMetadata(PREFIX_OBSAHU + soubor);
+    const platna = (soucasny && soucasny.metadata && soucasny.metadata.otisk) || "";
+    if (telo.verze !== undefined && telo.verze !== null && platna && String(telo.verze) !== platna) {
       return json({
-        chyba: "Načtení souboru: " + potizSGitHubem(stavajici.status, repo, await zpravaGitHubu(stavajici)),
-      }, 502);
+        chyba: "Obsah webu mezitím publikoval někdo jiný. Načtěte administraci znovu (F5) " +
+               "a svoje změny zopakujte — jinak byste ty jeho přepsali.",
+      }, 409);
     }
-
-    const zapis = await fetch(adresa, {
-      method: "PUT",
-      headers: hlavicky,
-      body: JSON.stringify({
-        message: ((telo.zprava || "Aktualizace obsahu z administrace") + " — " + relace.email).slice(0, 200),
-        content: jeObrazek ? obsah : naBase64(obsah),
-        branch: vetev,
-        sha: sha,
-      }),
-    });
-
-    if (!zapis.ok) {
-      return json({
-        chyba: "Uložení souboru: " + potizSGitHubem(zapis.status, repo, await zpravaGitHubu(zapis)),
-      }, 502);
-    }
-
-    const vysledek = await zapis.json();
-    return json({
-      ok: true,
-      commit: vysledek.commit && vysledek.commit.sha ? vysledek.commit.sha.slice(0, 7) : "",
-      soubor: soubor,
-    });
-  } catch (e) {
-    return json({ chyba: "Spojení s GitHubem selhalo: " + (e && e.message ? e.message : e) }, 502);
+    bajty = new TextEncoder().encode(obsah);
+    typ = "text/javascript; charset=utf-8";
   }
+
+  const otisk = hex(await crypto.subtle.digest("SHA-256", bajty)).slice(0, 32);
+  await env.ADMIN_KV.put(PREFIX_OBSAHU + soubor, bajty, {
+    metadata: {
+      otisk: otisk,
+      typ: typ,
+      kdy: new Date().toISOString(),
+      kdo: relace.email,
+      velikost: bajty.byteLength,
+    },
+  });
+
+  return json({ ok: true, soubor: soubor, verze: otisk });
 }
+
+/** Co je právě venku: odkud se obsah bere, kdy a kdo ho publikoval. */
+async function stavObsahu(request, env) {
+  if (!(await overRelaci(request, env))) return json({ chyba: "Nejste přihlášeni." }, 401);
+
+  const zaznam = await env.ADMIN_KV.getWithMetadata(PREFIX_OBSAHU + SOUBOR_DAT, { type: "arrayBuffer" });
+  const meta = (zaznam && zaznam.metadata) || {};
+  const vKv = !!(zaznam && zaznam.value);
+  return json({
+    ok: true,
+    zdroj: vKv ? "uloziste" : "soubor",
+    verze: vKv ? (meta.otisk || "") : "",
+    kdy: meta.kdy || "",
+    kdo: meta.kdo || "",
+    velikost: vKv ? (meta.velikost || zaznam.value.byteLength) : 0,
+  });
+}
+
+/** Aktuální data.js ke stažení — záloha toho, co je právě na webu. */
+async function exportObsahu(request, env) {
+  if (!(await overRelaci(request, env))) return json({ chyba: "Nejste přihlášeni." }, 401);
+
+  let text = await env.ADMIN_KV.get(PREFIX_OBSAHU + SOUBOR_DAT, "text");
+  if (!text) {
+    const zRepa = await env.ASSETS.fetch(new Request(new URL("/" + SOUBOR_DAT, request.url)));
+    text = zRepa.ok ? await zRepa.text() : "";
+  }
+  const datum = new Date().toISOString().slice(0, 10);
+  return new Response(text, {
+    status: 200,
+    headers: {
+      "Content-Type": "text/javascript; charset=utf-8",
+      "Content-Disposition": 'attachment; filename="data-' + datum + '.js"',
+      "Cache-Control": "no-store",
+      "X-Robots-Tag": "noindex, nofollow",
+    },
+  });
+}
+
+/** Než pustíme data.js na web: musí obsahovat všechny části, jinak by web zčernal. */
+function zkontrolujDataJs(text) {
+  for (const cast of ["NASTAVENI", "KRAJE", "TYPY_SKOL", "SKOLY", "CLANKY"]) {
+    if (!new RegExp("\\bconst\\s+" + cast + "\\s*=").test(text)) {
+      return "V obsahu chybí část " + cast + " — soubor vypadá poškozeně, nepublikuji ho.";
+    }
+  }
+  if (text.length > 4 * 1024 * 1024) return "Obsah je podezřele velký (přes 4 MB) — nepublikuji ho.";
+  return "";
+}
+
+function typPodlePripony(soubor) {
+  const pripona = (soubor.match(/\.([a-z0-9]+)$/i) || ["", ""])[1].toLowerCase();
+  return { jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", webp: "image/webp", avif: "image/avif" }[pripona]
+    || "application/octet-stream";
+}
+
+const popisChyby = (e) => (e && e.message ? e.message : String(e));
 
 /* ============================================================
    Drobnosti
@@ -521,68 +540,6 @@ function zB64url(text) {
   const out = new Uint8Array(s.length);
   for (let i = 0; i < s.length; i++) out[i] = s.charCodeAt(i);
   return out;
-}
-
-/** Token občas doputuje do Cloudflare s mezerou nebo koncem řádku navíc. */
-function tokenGitHubu(env) {
-  return String(env.GITHUB_TOKEN || "").trim();
-}
-
-function hlavickyGitHubu(token, sTelem) {
-  const h = {
-    "Authorization": "Bearer " + token,
-    "Accept": "application/vnd.github+json",
-    "X-GitHub-Api-Version": "2022-11-28",
-    "User-Agent": "stredoskolska-lupa-admin",
-  };
-  // Content-Type patří jen k požadavku, který nese tělo — u GET z něj
-  // GitHub umí být nesvůj
-  if (sTelem) h["Content-Type"] = "application/json";
-  return h;
-}
-
-/** Vytáhne z odpovědi GitHubu jeho vlastní vysvětlení, když nějaké má. */
-async function zpravaGitHubu(odpoved) {
-  try {
-    const text = (await odpoved.text()).slice(0, 500);
-    try {
-      const data = JSON.parse(text);
-      return [data.message, data.errors && JSON.stringify(data.errors)]
-        .filter(Boolean).join(" ").slice(0, 220);
-    } catch (e) {
-      return text.replace(/\s+/g, " ").slice(0, 220);
-    }
-  } catch (e) {
-    return "";
-  }
-}
-
-/** Ze suchého čísla od GitHubu udělá větu, podle které se dá jednat. */
-function potizSGitHubem(stav, repo, zprava) {
-  const dodatek = zprava ? " (GitHub: " + zprava + ")" : "";
-  if (stav === 401) {
-    return "GitHub token je neplatný nebo vypršel. V Cloudflare nastavte nový GITHUB_TOKEN." + dodatek;
-  }
-  if (stav === 403) {
-    return "GitHub tokenu chybí oprávnění k zápisu. Potřebuje „Contents: Read and write\" " +
-           "na repozitář " + repo + "." + dodatek;
-  }
-  if (stav === 404) {
-    return "GitHub token nevidí repozitář " + repo + ". Zkontrolujte, že je vybraný " +
-           "v „Repository access\" a že má oprávnění „Contents: Read and write\"." + dodatek;
-  }
-  if (stav === 409 || stav === 422) {
-    return "Obsah webu se mezitím změnil jinde. Načtěte administraci znovu a publikujte znovu." + dodatek;
-  }
-  return "GitHub odmítl uložení (chyba " + stav + ")." + dodatek;
-}
-
-/** Text (i s diakritikou) na base64, jak ho GitHub API očekává. */
-function naBase64(text) {
-  const bajty = new TextEncoder().encode(text);
-  let binarne = "";
-  for (let i = 0; i < bajty.length; i++) binarne += String.fromCharCode(bajty[i]);
-  return btoa(binarne);
 }
 
 function json(data, status, cookie) {
