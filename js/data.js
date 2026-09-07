@@ -341,30 +341,24 @@ const SKOLY = [
 const CLANKY = [
   {
     id: "zitra-lesnicka-skola-pod-krivoklatem",
-    titulek: "Zítra: lesnická škola pod Křivoklátem",
+    titulek: "Další díl podcastového pořadu už zítra!",
     datum: "2026-09-07",
     autor: "Michaela Brejchová",
     perex:
-      "Další díl Středoškolské lupy vychází 8. září v 19 hodin. Hostem je " +
-      "ředitelka Střední lesnické školy a SOU Křivoklát Ing. Alexandra Lochová, MBA.",
+      "Hostem bude sympatická a velmi charismatická ředitelka SLŠ a SOU Křivoklát, " +
+      "Ing. Alexandra Lochová. Vychází 8. září v 19 hodin.",
     obsah: `
+      <p>Už zítra očekávejte další díl našeho nového podcastu! Hostem bude sympatická
+      a velmi charismatická ředitelka SLŠ a SOU Křivoklát, Ing. Alexandra Lochová.
+      Dozvíte se například, jaké výhody mají studenti, kteří se účastní troubení.</p>
       <p>Ing. Alexandra Lochová je na této unikátní lesnické škole považována za matku
       celého učitelského sboru, ale i samotných studentů. Má obrovské kouzlo lidi
       stmelovat a když tuto školu navštívíte, okamžitě na vás dýchne rodinná atmosféra.
       Tady se zkrátka cítíte jako doma. Není nic, co by paní ředitelka nedokázala
       vyřešit. Vždy poradí, pomůže.</p>
-      <p><strong>Těšte se na rozhovor s ní. Už zítra 8. září v 19 hodin!</strong></p>
-      <h2>Škola s vůní lesa</h2>
-      <p>Škola stojí přímo pod křivoklátským hradem, uprostřed chráněné krajinné
-      oblasti. Nabízí dva maturitní obory — lesnictví a veterinářství — a tři učební
-      obory s výučním listem: mechanik lesní techniky, opravář lesnických strojů
-      a truhlář. Praxe se tu z velké části odehrává v lese, ne za lavicí.</p>
-      <h2>Kde si epizodu pustíte</h2>
-      <p>Zítra od 19 hodin v <a href="skola.html?id=sls-sou-krivoklat">profilu školy</a>
-      tady na webu. Do té doby si v něm můžete pustit <strong>videoreportáž přímo ze
-      školy</strong> — uvidíte, jak to pod Křivoklátem vypadá.</p>
-      <p>Učíte na střední škole a chcete být v databázi taky?
-      <a href="pro-skoly.html">Ozvěte se nám</a>.</p>
+      <p>Těšte se na rozhovor s ní. Už zítra 8. září v 19 hodin!</p>
+      <p class="napoveda">Epizoda se objeví v <a href="skola.html?id=sls-sou-krivoklat">profilu
+      školy</a> tady na webu. Do té doby si v něm můžete pustit videoreportáž přímo ze školy.</p>
     `,
   },
   {
