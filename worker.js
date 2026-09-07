@@ -374,9 +374,7 @@ async function publikovat(request, env, relace) {
     if (stavajici.status === 200) {
       sha = (await stavajici.json()).sha;
     } else if (stavajici.status !== 404) {
-      return json({
-        chyba: "GitHub odmítl přístup (" + stavajici.status + "). Zkontrolujte oprávnění tokenu.",
-      }, 502);
+      return json({ chyba: potizSGitHubem(stavajici.status, repo) }, 502);
     }
 
     const zapis = await fetch(adresa, {
@@ -393,7 +391,7 @@ async function publikovat(request, env, relace) {
     if (!zapis.ok) {
       const detail = await zapis.text();
       return json({
-        chyba: "Uložení na GitHub selhalo (" + zapis.status + ").",
+        chyba: potizSGitHubem(zapis.status, repo),
         detail: detail.slice(0, 300),
       }, 502);
     }
@@ -453,6 +451,25 @@ function zB64url(text) {
   const out = new Uint8Array(s.length);
   for (let i = 0; i < s.length; i++) out[i] = s.charCodeAt(i);
   return out;
+}
+
+/** Ze suchého čísla od GitHubu udělá větu, podle které se dá jednat. */
+function potizSGitHubem(stav, repo) {
+  if (stav === 401) {
+    return "GitHub token je neplatný nebo vypršel. V Cloudflare nastavte nový GITHUB_TOKEN.";
+  }
+  if (stav === 403) {
+    return "GitHub tokenu chybí oprávnění k zápisu. Potřebuje „Contents: Read and write\" " +
+           "na repozitář " + repo + ".";
+  }
+  if (stav === 404) {
+    return "GitHub token nevidí repozitář " + repo + ". Zkontrolujte, že je vybraný " +
+           "v „Repository access\" a že má oprávnění „Contents: Read and write\".";
+  }
+  if (stav === 409 || stav === 422) {
+    return "Obsah webu se mezitím změnil jinde. Načtěte administraci znovu a publikujte znovu.";
+  }
+  return "GitHub odmítl uložení (chyba " + stav + ").";
 }
 
 /** Text (i s diakritikou) na base64, jak ho GitHub API očekává. */

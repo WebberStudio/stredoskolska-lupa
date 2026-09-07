@@ -58,8 +58,14 @@
     const t = document.createElement("div");
     t.className = "toast" + (typ ? " " + typ : "");
     t.textContent = text;
+    // chybu si člověk potřebuje přečíst — ta ať zůstane, dokud na ni neklikne
+    if (typ === "chyba") {
+      t.title = "Kliknutím zavřít";
+      t.style.cursor = "pointer";
+      t.addEventListener("click", () => t.remove());
+    }
     document.body.appendChild(t);
-    setTimeout(() => t.remove(), 3200);
+    setTimeout(() => t.remove(), typ === "chyba" ? 20000 : 3200);
   }
 
   /* ---------- Přihlášený uživatel (předá js/admin-auth.js) ---------- */
@@ -146,6 +152,9 @@ const CLANKY = ${jsVal(stav.clanky, "")};
      ne při otevření administrace z disku. */
   const naWebu = !/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname) &&
                  location.protocol !== "file:";
+
+  // poslední krok se na webu jmenuje jinak než v lokální administraci
+  const dokonceni = () => naWebu ? "nezapomeňte Publikovat na web" : "nezapomeňte Uložit změny";
 
   async function publikovatSoubor(cesta, obsah, popis) {
     const odpoved = await fetch("/admin/publikovat", {
@@ -265,6 +274,8 @@ const CLANKY = ${jsVal(stav.clanky, "")};
     const zaklad = ulozenyJson === null ? puvodniJson : ulozenyJson;
     $("#adm-zmeny").hidden = JSON.stringify(stav) === zaklad;
     const sl = $("#adm-slozka");
+    // na webu se do složky neukládá, tak o ní ani nemluvíme
+    if (naWebu) { sl.textContent = "Publikuje se přímo na web"; sl.classList.remove("pripojeno"); return; }
     if (slozka) { sl.textContent = "Složka připojena: " + slozka.name; sl.classList.add("pripojeno"); }
     else { sl.textContent = fsPodpora ? "Složka webu nepřipojena" : "Prohlížeč neumí přímé ukládání"; sl.classList.remove("pripojeno"); }
   }
@@ -576,7 +587,7 @@ const CLANKY = ${jsVal(stav.clanky, "")};
       ulozDraft();
       ui.editace = null;
       render();
-      toast(puvodni ? "Škola upravena (nezapomeňte Uložit změny)" : "Škola přidána (nezapomeňte Uložit změny)");
+      toast(puvodni ? "Škola upravena (" + dokonceni() + ")" : "Škola přidána (" + dokonceni() + ")");
     });
 
     if (!novy) {
@@ -586,7 +597,7 @@ const CLANKY = ${jsVal(stav.clanky, "")};
         ulozDraft();
         ui.editace = null;
         render();
-        toast("Škola smazána (nezapomeňte Uložit změny)");
+        toast("Škola smazána (" + dokonceni() + ")");
       });
     }
   }
@@ -636,7 +647,9 @@ const CLANKY = ${jsVal(stav.clanky, "")};
         "</fieldset>" +
         '<fieldset class="jeden-sloupec"><legend>Náhled</legend><div class="adm-nahled"><div class="article-body" id="nahled-clanku"></div></div></fieldset>' +
         '<div class="adm-akce">' +
-          '<button type="submit" class="btn">' + (novy ? "Publikovat článek" : "Uložit úpravy") + "</button>" +
+          // NE „Publikovat" — publikuje se až tlačítkem v liště nahoře,
+          // dvě různá „publikovat" vedle sebe uživatele spolehlivě zmatou
+          '<button type="submit" class="btn">' + (novy ? "Přidat článek" : "Uložit úpravy") + "</button>" +
           '<button type="button" class="btn btn--ghost" id="btn-zrusit">Zrušit</button>' +
           (novy ? "" : '<button type="button" class="btn btn--ghost smazat" id="btn-smazat">Smazat článek</button>') +
         "</div>" +
@@ -682,7 +695,7 @@ const CLANKY = ${jsVal(stav.clanky, "")};
       ulozDraft();
       ui.editace = null;
       render();
-      toast(novy ? "Článek přidán (nezapomeňte Uložit změny)" : "Článek upraven (nezapomeňte Uložit změny)");
+      toast(novy ? "Článek přidán (" + dokonceni() + ")" : "Článek upraven (" + dokonceni() + ")");
     });
 
     if (!novy) {
@@ -692,7 +705,7 @@ const CLANKY = ${jsVal(stav.clanky, "")};
         ulozDraft();
         ui.editace = null;
         render();
-        toast("Článek smazán (nezapomeňte Uložit změny)");
+        toast("Článek smazán (" + dokonceni() + ")");
       });
     }
   }
@@ -732,7 +745,7 @@ const CLANKY = ${jsVal(stav.clanky, "")};
         facebook: v("#n-fb"), spotify: v("#n-sp"), applePodcasts: v("#n-ap"),
       };
       ulozDraft();
-      toast("Nastavení uloženo (nezapomeňte Uložit změny)");
+      toast("Nastavení uloženo (" + dokonceni() + ")");
     });
   }
 
@@ -928,19 +941,23 @@ const CLANKY = ${jsVal(stav.clanky, "")};
     u.hidden = false;
     $("#btn-odhlasit").hidden = false;
 
-    // na ostré adrese se publikuje na web, lokálně se ukládá do složky
+    // Na ostré adrese vede k cíli jediná cesta — Publikovat na web.
+    // Ukládání do složky a stahování souboru dávají smysl jen lokálně;
+    // na webu by to byly slepé uličky, tak je schováme.
     if (naWebu) {
       [$("#btn-publikovat"), $("#btn-publikovat-2")].forEach((b) => { if (b) b.hidden = false; });
-      const pripojit = $("#btn-pripojit");
-      if (pripojit) pripojit.hidden = true;
-      const ulozit = $("#btn-ulozit");
-      if (ulozit) ulozit.hidden = true;
+      [$("#btn-pripojit"), $("#btn-ulozit"), $("#btn-ulozit-2"), $("#btn-stahnout")]
+        .forEach((b) => { if (b) b.hidden = true; });
       const slozka = $("#adm-slozka");
       if (slozka) slozka.textContent = "Publikuje se přímo na web";
+      const popis = $("#adm-zmeny-popis");
+      if (popis) popis.textContent = "● Nepublikované změny";
     }
 
     if (zDraftu) {
-      toast("Načteny rozpracované změny z minula — Uložit změny je zapíše do webu.");
+      toast(naWebu
+        ? "Načteny rozpracované změny z minula — na web je pošle Publikovat na web."
+        : "Načteny rozpracované změny z minula — Uložit změny je zapíše do webu.");
     }
 
     render();
