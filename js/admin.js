@@ -74,6 +74,10 @@
 
   /* ---------- Stav ---------- */
   const DRAFT_KLIC = "lupaAdminDraft";
+  // verze obsahu, ze které rozpracované změny vycházejí — ať poznáme koncept nad zastaralým základem
+  const DRAFT_VERZE_KLIC = "lupaAdminDraftVerze";
+  let zakladVerze = null;
+  try { zakladVerze = localStorage.getItem(DRAFT_VERZE_KLIC) || null; } catch (e) { /* nevadí */ }
   const kopie = (x) => JSON.parse(JSON.stringify(x));
 
   function stavZWebu() {
@@ -99,7 +103,10 @@
   } catch (e) { /* poškozený draft ignorujeme */ }
 
   function ulozDraft() {
-    try { localStorage.setItem(DRAFT_KLIC, JSON.stringify(stav)); } catch (e) { /* plné úložiště */ }
+    try {
+      localStorage.setItem(DRAFT_KLIC, JSON.stringify(stav));
+      if (zakladVerze) localStorage.setItem(DRAFT_VERZE_KLIC, zakladVerze);
+    } catch (e) { /* plné úložiště */ }
     aktualizujListu();
   }
 
@@ -174,7 +181,9 @@ const CLANKY = ${jsVal(stav.clanky, "")};
     const odpoved = await fetch("/admin/publikovat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ soubor: cesta, obsah: obsah, zprava: popis, verze: verzeObsahu }),
+      // posíláme verzi, ze které rozpracované změny vycházejí — ne tu, kterou jsme
+      // náhodou viděli při načtení; jinak by starý koncept tiše přepsal novější obsah
+      body: JSON.stringify({ soubor: cesta, obsah: obsah, zprava: popis, verze: zakladVerze || verzeObsahu }),
     });
     let data = {};
     try { data = await odpoved.json(); } catch (e) { /* prázdná odpověď */ }
@@ -291,6 +300,8 @@ const CLANKY = ${jsVal(stav.clanky, "")};
   function prijmoutUlozeno() {
     // uložený stav se stává „původním" — pro označení změn v této relaci
     localStorage.removeItem(DRAFT_KLIC);
+    try { localStorage.removeItem(DRAFT_VERZE_KLIC); } catch (e) { /* nevadí */ }
+    zakladVerze = verzeObsahu;
     ulozenyJson = JSON.stringify(stav);
     aktualizujListu();
   }
@@ -917,7 +928,13 @@ const CLANKY = ${jsVal(stav.clanky, "")};
           ? "<h3>Co je právě venku</h3>" +
             '<div id="stav-obsahu"><p class="napoveda">Zjišťuji…</p></div>' +
             '<p>Záloha: <a href="/admin/api/export" download>stáhnout aktuální obsah webu (data.js)</a>. ' +
-            "Hodí se ji čas od času uložit stranou.</p>"
+            "Hodí se ji čas od času uložit stranou.</p>" +
+            "<h3>Zkusit nanečisto</h3>" +
+            "<p>Projde totéž co publikování, ale na webu nic nezmění: přihlášení, úložiště, " +
+            "co je právě venku, jestli vaše rozpracované změny projdou a jestli nevycházejí " +
+            "ze zastaralé verze obsahu. Stejné tlačítko je i v oranžové liště u nepublikovaných změn.</p>" +
+            '<p><button type="button" class="btn btn--ghost" id="btn-zkouska">Zkusit nanečisto</button></p>' +
+            '<div id="vysledek-zkousky"></div>'
           : "") +
         "<h3>Rozpracované změny</h3>" +
         "<p>Neuložené změny se drží v prohlížeči (přežijí i zavření okna) a svítí u nich oranžová lišta. " +
@@ -928,6 +945,98 @@ const CLANKY = ${jsVal(stav.clanky, "")};
       "</div></div>";
 
     if ($("#stav-obsahu")) vykresliStavObsahu();
+    const tlZkouska = $("#btn-zkouska");
+    if (tlZkouska) tlZkouska.addEventListener("click", () => zkouskaPublikovani(tlZkouska));
+  }
+
+  /** Zkouška nanečisto: co by se stalo, kdybych teď klikl na Publikovat — bez publikování. */
+  async function zkouskaPublikovani(tlacitko) {
+    const box = $("#vysledek-zkousky");
+    if (!box) return;
+    tlacitko.disabled = true;
+    tlacitko.textContent = "Zkouším…";
+    box.innerHTML = "";
+    const kroky = [];
+
+    try {
+      // 1) server: přihlášení, úložiště, co je venku
+      const odpoved = await fetch("/admin/api/zkouska", { method: "POST" });
+      const data = await odpoved.json().catch(() => ({}));
+      if (odpoved.status === 401) { location.replace("/admin"); return; }
+      if (!odpoved.ok || !data.ok) throw new Error(data.chyba || ("Server odpověděl " + odpoved.status));
+      kroky.push(...data.kroky);
+      if (data.verze) verzeObsahu = data.verze;
+
+      // 2) rozpracované změny: vygenerovaný obsah musí projít jako JavaScript
+      const jsouZmeny = $("#adm-zmeny").hidden === false;
+      try {
+        const text = generujDataJs();
+        const zk = new Function(text + "\nreturn { NASTAVENI, KRAJE, TYPY_SKOL, SKOLY, CLANKY };")();
+        if (!zk || !Array.isArray(zk.SKOLY) || !Array.isArray(zk.CLANKY) || !zk.NASTAVENI) throw new Error("chybí část obsahu");
+        kroky.push({
+          nazev: jsouZmeny ? "Rozpracované změny" : "Obsah k publikování",
+          ok: true,
+          popis: (jsouZmeny ? "Prošly by v pořádku: " : "Nic nepublikovaného; obsah je v pořádku: ") +
+                 zk.SKOLY.length + " škol, " + zk.CLANKY.length + " článků, " +
+                 Math.round(text.length / 1024) + " kB.",
+        });
+      } catch (e) {
+        kroky.push({ nazev: "Rozpracované změny", ok: false,
+                     popis: "Vygenerovaný obsah neprojde (" + (e && e.message ? e.message : e) +
+                            "). Dejte Zahodit změny a zadejte je znovu." });
+      }
+
+      // 3) nevycházejí změny ze zastaralé verze?
+      if (jsouZmeny) {
+        if (!verzeObsahu) {
+          kroky.push({ nazev: "Verze, ze které vycházíte", ok: true,
+                       popis: "Z administrace se zatím nepublikovalo — není s čím kolidovat." });
+        } else if (!zakladVerze) {
+          kroky.push({ nazev: "Verze, ze které vycházíte", ok: false,
+                       popis: "Nedá se zjistit (koncept vznikl ve starší verzi administrace). " +
+                              "Pokud jste změny nedělali dnes, radši je zahoďte a zadejte znovu." });
+        } else if (zakladVerze === verzeObsahu) {
+          kroky.push({ nazev: "Verze, ze které vycházíte", ok: true,
+                       popis: "Pracujete nad tím, co je právě na webu." });
+        } else {
+          kroky.push({ nazev: "Verze, ze které vycházíte", ok: false,
+                       popis: "Na webu je novější obsah, než ze kterého tyhle změny vycházejí — " +
+                              "publikování by ho přepsalo. Dejte Zahodit změny a zadejte je znovu." });
+        }
+
+        // 4) heuristika: co je venku a v konceptu chybí (typický zastaralý koncept)
+        const venku = stavZWebu();
+        const chybi = [];
+        venku.skoly.forEach((s) => { if (!stav.skoly.some((x) => x.id === s.id)) chybi.push("škola „" + s.nazev + "“"); });
+        venku.clanky.forEach((c) => { if (!stav.clanky.some((x) => x.id === c.id)) chybi.push("článek „" + c.titulek + "“"); });
+        if (chybi.length) {
+          kroky.push({ nazev: "Položky, které by z webu zmizely", ok: false,
+                       popis: chybi.slice(0, 5).join(", ") + (chybi.length > 5 ? " a další" : "") +
+                              ". Pokud jste je nesmazali schválně, koncept je zastaralý — dejte Zahodit změny." });
+        }
+      }
+
+      const vse = kroky.every((k) => k.ok);
+      box.innerHTML =
+        '<div class="adm-panel" style="margin:12px 0">' +
+          kroky.map((k) =>
+            '<div class="adm-radek"><span class="ar-info">' +
+              '<span class="ar-nazev">' + (k.ok ? "✓ " : "✗ ") + esc(k.nazev) + "</span>" +
+              '<span class="ar-meta">' + esc(k.popis || "") + "</span>" +
+            "</span></div>").join("") +
+        "</div>" +
+        '<p class="napoveda">' + (vse
+          ? (jsouZmeny ? "Můžete publikovat — všechno by prošlo." : "Všechno je v pořádku.")
+          : "Než budete publikovat, vyřešte řádky označené ✗.") + "</p>";
+      toast(vse ? "Zkouška prošla ✓" : "Zkouška našla problém — čtěte výpis.", vse ? "ok" : "chyba");
+    } catch (e) {
+      box.innerHTML = '<p class="napoveda">Zkoušku se nepodařilo spustit: ' +
+                      esc(e && e.message ? e.message : String(e)) + "</p>";
+      toast("Zkouška se nezdařila: " + (e && e.message ? e.message : e), "chyba");
+    } finally {
+      tlacitko.disabled = false;
+      tlacitko.textContent = "Zkusit nanečisto";
+    }
   }
 
   /** Do návodu vypíše, odkud web bere obsah a kdo ho naposledy publikoval. */
@@ -1014,8 +1123,27 @@ const CLANKY = ${jsVal(stav.clanky, "")};
       if (slozka) slozka.textContent = "Publikuje se přímo na web";
       const popis = $("#adm-zmeny-popis");
       if (popis) popis.textContent = "● Nepublikované změny";
+      const zkusit = $("#btn-zkouska-2");
+      if (zkusit) {
+        zkusit.hidden = false;
+        zkusit.addEventListener("click", () => {
+          ui.tab = "navod";
+          ui.editace = null;
+          render();
+          const tl = $("#btn-zkouska");
+          if (tl) { tl.scrollIntoView({ block: "center" }); zkouskaPublikovani(tl); }
+        });
+      }
       // verze obsahu, nad kterou pracujeme — server podle ní pozná souběžnou změnu
-      nactiStavObsahu();
+      nactiStavObsahu().then((s) => {
+        if (!s) return;
+        if (!zDraftu) {
+          zakladVerze = verzeObsahu;
+        } else if (zakladVerze && verzeObsahu && zakladVerze !== verzeObsahu) {
+          toast("Pozor: rozpracované změny vznikly nad starší verzí obsahu, než je teď na webu. " +
+                "Než je publikujete, dejte Zkusit nanečisto — nebo Zahodit změny a zadejte je znovu.", "chyba");
+        }
+      });
     }
 
     if (zDraftu) {

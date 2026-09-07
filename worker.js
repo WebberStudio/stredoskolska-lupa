@@ -133,6 +133,7 @@ async function api(request, env, cesta) {
       case "/admin/api/ucty/smazat":return await smazaniUctu(request, env, telo);
       case "/admin/api/stav-obsahu":return await stavObsahu(request, env);
       case "/admin/api/export":     return await exportObsahu(request, env);
+      case "/admin/api/zkouska":    return await zkouskaPublikovani(request, env);
       default: return json({ chyba: "Neznámý požadavek." }, 404);
     }
   } catch (e) {
@@ -417,8 +418,9 @@ async function publikovat(request, env, relace) {
     const platna = (soucasny && soucasny.metadata && soucasny.metadata.otisk) || "";
     if (telo.verze !== undefined && telo.verze !== null && platna && String(telo.verze) !== platna) {
       return json({
-        chyba: "Obsah webu mezitím publikoval někdo jiný. Načtěte administraci znovu (F5) " +
-               "a svoje změny zopakujte — jinak byste ty jeho přepsali.",
+        chyba: "Venku je novější verze obsahu, než nad kterou jste pracovali. Načtěte administraci " +
+               "znovu (F5); pokud upozornění zůstane, dejte Zahodit změny a zadejte je znovu — " +
+               "jinak byste přepsali, co mezitím publikoval někdo jiný.",
       }, 409);
     }
     bajty = new TextEncoder().encode(obsah);
@@ -437,6 +439,51 @@ async function publikovat(request, env, relace) {
   });
 
   return json({ ok: true, soubor: soubor, verze: otisk });
+}
+
+/** Zkouška nanečisto: projde totéž co publikování, ale nic na webu nezmění.
+    Zapíše a hned smaže zkušební klíč, ať je jasné, že úložiště opravdu bere zápisy. */
+async function zkouskaPublikovani(request, env) {
+  const relace = await overRelaci(request, env);
+  if (!relace) return json({ chyba: "Nejste přihlášeni." }, 401);
+
+  const kroky = [{ nazev: "Přihlášení", ok: true, popis: "Přihlášeni jako " + relace.email + "." }];
+
+  // 1) úložiště bere zápisy i čtení
+  const klic = PREFIX_OBSAHU + "_zkouska";
+  const razitko = String(Date.now());
+  try {
+    await env.ADMIN_KV.put(klic, razitko, { expirationTtl: 120 });
+    const zpet = await env.ADMIN_KV.get(klic);
+    await env.ADMIN_KV.delete(klic);
+    kroky.push(zpet === razitko
+      ? { nazev: "Úložiště obsahu", ok: true, popis: "Zkušební zápis i čtení prošly." }
+      : { nazev: "Úložiště obsahu", ok: false,
+          popis: "Zápis prošel, ale čtení vrátilo něco jiného — zkuste to za minutu znovu." });
+  } catch (e) {
+    kroky.push({ nazev: "Úložiště obsahu", ok: false, popis: "Zápis selhal: " + popisChyby(e) });
+  }
+
+  // 2) co je právě venku
+  let verze = "";
+  try {
+    const zaznam = await env.ADMIN_KV.getWithMetadata(PREFIX_OBSAHU + SOUBOR_DAT, { type: "arrayBuffer" });
+    const meta = (zaznam && zaznam.metadata) || {};
+    if (zaznam && zaznam.value) {
+      verze = meta.otisk || "";
+      kroky.push({ nazev: "Co je právě venku", ok: true,
+                   popis: "Obsah publikovaný z administrace" +
+                          (meta.kdy ? " (" + meta.kdy.slice(0, 16).replace("T", " ") + " UTC" : "") +
+                          (meta.kdo ? ", " + meta.kdo : "") + (meta.kdy ? ")" : "") + "." });
+    } else {
+      kroky.push({ nazev: "Co je právě venku", ok: true,
+                   popis: "Výchozí obsah ze souborů webu — z administrace se zatím nepublikovalo." });
+    }
+  } catch (e) {
+    kroky.push({ nazev: "Co je právě venku", ok: false, popis: "Nepodařilo se zjistit: " + popisChyby(e) });
+  }
+
+  return json({ ok: true, kroky: kroky, verze: verze });
 }
 
 /** Co je právě venku: odkud se obsah bere, kdy a kdo ho publikoval. */
