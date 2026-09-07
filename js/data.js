@@ -125,7 +125,7 @@ const SKOLY = [
     adresa: "Písky 181",
     kraj: "STC",
     typ: "sos",
-    reditel: "Ing. Alexandra Lochová, MBA",
+    reditel: "Mgr. Alexandra Lochová",
     web: "https://www.sls-krivoklat.cz",
     foto: null,
     popis:
@@ -346,12 +346,12 @@ const CLANKY = [
     autor: "Michaela Brejchová",
     perex:
       "Hostem bude sympatická a velmi charismatická ředitelka SLŠ a SOU Křivoklát, " +
-      "Ing. Alexandra Lochová. Vychází 8. září v 19 hodin.",
+      "Mgr. Alexandra Lochová. Vychází 8. září v 19 hodin.",
     obsah: `
       <p>Už zítra očekávejte další díl našeho nového podcastu! Hostem bude sympatická
-      a velmi charismatická ředitelka SLŠ a SOU Křivoklát, Ing. Alexandra Lochová.
+      a velmi charismatická ředitelka SLŠ a SOU Křivoklát, Mgr. Alexandra Lochová.
       Dozvíte se například, jaké výhody mají studenti, kteří se účastní troubení.</p>
-      <p>Ing. Alexandra Lochová je na této unikátní lesnické škole považována za matku
+      <p>Mgr. Alexandra Lochová je na této unikátní lesnické škole považována za matku
       celého učitelského sboru, ale i samotných studentů. Má obrovské kouzlo lidi
       stmelovat a když tuto školu navštívíte, okamžitě na vás dýchne rodinná atmosféra.
       Tady se zkrátka cítíte jako doma. Není nic, co by paní ředitelka nedokázala
