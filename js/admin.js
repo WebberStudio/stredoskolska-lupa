@@ -885,6 +885,13 @@ const CLANKY = ${jsVal(stav.clanky, "")};
         "<p>Prohlížeč si soubory drží v paměti zhruba <strong>10 minut</strong>. Když chcete výsledek " +
         "vidět ihned, načtěte stránku znovu přes <code>Ctrl + Shift + R</code> (na Macu <code>Cmd + Shift + R</code>). " +
         "Návštěvníkům se nový obsah objeví sám do deseti minut.</p>" +
+        (naWebu
+          ? "<h3>Když publikování hlásí chybu</h3>" +
+            "<p>Tohle tlačítko projde celé spojení s GitHubem krok po kroku a napíše, " +
+            "kde se to zadrhlo. Nic nemění ani nepublikuje.</p>" +
+            '<p><button type="button" class="btn btn--ghost" id="btn-kontrola">Zkontrolovat spojení</button></p>' +
+            '<div id="vysledek-kontroly"></div>'
+          : "") +
         "<h3>Rozpracované změny</h3>" +
         "<p>Neuložené změny se drží v prohlížeči (přežijí i zavření okna) a svítí u nich oranžová lišta. " +
         "<strong>Zahodit změny</strong> je vrátí do stavu podle souboru <code>data.js</code>.</p>" +
@@ -892,6 +899,44 @@ const CLANKY = ${jsVal(stav.clanky, "")};
         "<p>Do polí YouTube a Spotify klidně vložte celý odkaz z adresního řádku — administrace si z něj vytáhne, co potřebuje. " +
         "Dokud jsou pole prázdná, na webu se u epizody ukazuje ohláška „záznam brzy doplníme“.</p>" +
       "</div></div>";
+
+    const tlKontrola = $("#btn-kontrola");
+    if (tlKontrola) tlKontrola.addEventListener("click", () => spustKontrolu(tlKontrola));
+  }
+
+  /** Projde spojení s GitHubem a vypíše, kde se to případně zadrhlo. */
+  async function spustKontrolu(tlacitko) {
+    const box = $("#vysledek-kontroly");
+    tlacitko.disabled = true;
+    tlacitko.textContent = "Kontroluji…";
+    box.innerHTML = "";
+    try {
+      const odpoved = await fetch("/admin/api/kontrola", { method: "POST" });
+      const data = await odpoved.json().catch(() => ({}));
+      if (!odpoved.ok || !data.ok) throw new Error(data.chyba || ("Server odpověděl " + odpoved.status));
+
+      const vse = data.kroky.every((k) => k.ok);
+      box.innerHTML =
+        '<div class="adm-panel" style="margin:12px 0">' +
+          data.kroky.map((k) =>
+            '<div class="adm-radek"><span class="ar-info">' +
+              '<span class="ar-nazev">' + (k.ok ? "✓ " : "✗ ") + esc(k.nazev) + "</span>" +
+              '<span class="ar-meta">' + esc(k.popis || "") +
+                (k.stav ? " · odpověď " + k.stav : "") + "</span>" +
+            "</span></div>").join("") +
+        "</div>" +
+        '<p class="napoveda">' + (vse
+          ? "Spojení je v pořádku — publikování by mělo projít."
+          : "Publikování neprojde, dokud se nespraví krok označený ✗.") + "</p>";
+      toast(vse ? "Spojení s GitHubem je v pořádku ✓" : "Kontrola našla problém — čtěte výpis.",
+            vse ? "ok" : "chyba");
+    } catch (e) {
+      box.innerHTML = '<p class="napoveda">Kontrolu se nepodařilo spustit: ' +
+                      esc(e && e.message ? e.message : String(e)) + "</p>";
+    } finally {
+      tlacitko.disabled = false;
+      tlacitko.textContent = "Zkontrolovat spojení";
+    }
   }
 
   /* ---------- Start ---------- */

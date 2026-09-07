@@ -113,6 +113,7 @@ async function api(request, env, cesta) {
       case "/admin/api/ucty":       return await ucty(request, env, telo);
       case "/admin/api/ucty/heslo": return await zmenaHesla(request, env, telo);
       case "/admin/api/ucty/smazat":return await smazaniUctu(request, env, telo);
+      case "/admin/api/kontrola":   return await kontrolaGitHubu(request, env);
       default: return json({ chyba: "Neznámý požadavek." }, 404);
     }
   } catch (e) {
@@ -321,6 +322,78 @@ async function overRelaci(request, env) {
 }
 
 /* ============================================================
+   Kontrola spojení s GitHubem
+   ------------------------------------------------------------
+   Projde po krocích totéž co publikování, jen nic nezapisuje.
+   Token samotný se ven nedostane — jen to, co o něm říká GitHub.
+   ============================================================ */
+
+async function kontrolaGitHubu(request, env) {
+  if (!(await overRelaci(request, env))) return json({ chyba: "Nejste přihlášeni." }, 401);
+
+  const syrovy = String(env.GITHUB_TOKEN || "");
+  const token = syrovy.trim();
+  const repo = env.GITHUB_REPO || VYCHOZI_REPO;
+  const vetev = env.GITHUB_VETEV || VYCHOZI_VETEV;
+  const kroky = [];
+
+  if (!token) {
+    return json({
+      ok: true, repo, vetev,
+      kroky: [{ nazev: "Token v Cloudflare", ok: false,
+                popis: "GITHUB_TOKEN není nastavený." }],
+    });
+  }
+
+  kroky.push({
+    nazev: "Token v Cloudflare",
+    ok: syrovy === token,
+    popis: syrovy === token
+      ? "Nastavený, " + token.length + " znaků."
+      : "Nastavený, ale má na začátku nebo konci mezeru či konec řádku — " +
+        "vložte ho v Cloudflare znovu bez nich.",
+  });
+
+  async function krok(nazev, adresa, vyhodnot) {
+    try {
+      const o = await fetch(adresa, { headers: hlavickyGitHubu(token) });
+      const zprava = o.ok ? "" : await zpravaGitHubu(o);
+      let data = null;
+      if (o.ok) { try { data = JSON.parse(await o.text()); } catch (e) { /* nevadí */ } }
+      kroky.push(Object.assign({ nazev, ok: o.ok, stav: o.status },
+        o.ok ? (vyhodnot ? vyhodnot(data) : { popis: "V pořádku." })
+             : { popis: potizSGitHubem(o.status, repo, zprava) }));
+      return o.ok;
+    } catch (e) {
+      kroky.push({ nazev, ok: false, popis: "Spojení selhalo: " + (e && e.message ? e.message : e) });
+      return false;
+    }
+  }
+
+  await krok("Komu token patří", "https://api.github.com/user",
+    (d) => ({ popis: d && d.login ? "Účet " + d.login : "V pořádku." }));
+
+  const vidiRepo = await krok("Přístup k repozitáři " + repo,
+    "https://api.github.com/repos/" + repo,
+    (d) => {
+      const zapis = d && d.permissions && d.permissions.push;
+      return {
+        ok: !!zapis,
+        popis: zapis
+          ? "Vidí ho a smí do něj zapisovat."
+          : "Vidí ho, ale NEMÁ právo zápisu — token potřebuje „Contents: Read and write\".",
+      };
+    });
+
+  if (vidiRepo) {
+    await krok("Čtení js/data.js na větvi " + vetev,
+      "https://api.github.com/repos/" + repo + "/contents/js/data.js?ref=" + encodeURIComponent(vetev));
+  }
+
+  return json({ ok: true, repo, vetev, kroky });
+}
+
+/* ============================================================
    Publikování na web (zápis do repozitáře na GitHubu)
    ============================================================ */
 
@@ -352,7 +425,7 @@ async function publikovat(request, env, relace) {
     }
   }
 
-  const token = env.GITHUB_TOKEN;
+  const token = tokenGitHubu(env);
   if (!token) {
     return json({ chyba: "Publikování zatím není nastavené — v Cloudflare chybí GITHUB_TOKEN." }, 501);
   }
@@ -360,21 +433,20 @@ async function publikovat(request, env, relace) {
   const repo = env.GITHUB_REPO || VYCHOZI_REPO;
   const vetev = env.GITHUB_VETEV || VYCHOZI_VETEV;
   const adresa = "https://api.github.com/repos/" + repo + "/contents/" + soubor;
-  const hlavicky = {
-    "Authorization": "Bearer " + token,
-    "Accept": "application/vnd.github+json",
-    "User-Agent": "stredoskolska-lupa-admin",
-    "Content-Type": "application/json",
-  };
+  const hlavicky = hlavickyGitHubu(token, true);
 
   try {
     // GitHub vyžaduje otisk současné verze souboru, aby nepřepsal cizí změnu
     let sha;
-    const stavajici = await fetch(adresa + "?ref=" + encodeURIComponent(vetev), { headers: hlavicky });
+    const stavajici = await fetch(adresa + "?ref=" + encodeURIComponent(vetev), {
+      headers: hlavickyGitHubu(token),
+    });
     if (stavajici.status === 200) {
       sha = (await stavajici.json()).sha;
     } else if (stavajici.status !== 404) {
-      return json({ chyba: potizSGitHubem(stavajici.status, repo) }, 502);
+      return json({
+        chyba: "Načtení souboru: " + potizSGitHubem(stavajici.status, repo, await zpravaGitHubu(stavajici)),
+      }, 502);
     }
 
     const zapis = await fetch(adresa, {
@@ -389,10 +461,8 @@ async function publikovat(request, env, relace) {
     });
 
     if (!zapis.ok) {
-      const detail = await zapis.text();
       return json({
-        chyba: potizSGitHubem(zapis.status, repo),
-        detail: detail.slice(0, 300),
+        chyba: "Uložení souboru: " + potizSGitHubem(zapis.status, repo, await zpravaGitHubu(zapis)),
       }, 502);
     }
 
@@ -453,23 +523,58 @@ function zB64url(text) {
   return out;
 }
 
+/** Token občas doputuje do Cloudflare s mezerou nebo koncem řádku navíc. */
+function tokenGitHubu(env) {
+  return String(env.GITHUB_TOKEN || "").trim();
+}
+
+function hlavickyGitHubu(token, sTelem) {
+  const h = {
+    "Authorization": "Bearer " + token,
+    "Accept": "application/vnd.github+json",
+    "X-GitHub-Api-Version": "2022-11-28",
+    "User-Agent": "stredoskolska-lupa-admin",
+  };
+  // Content-Type patří jen k požadavku, který nese tělo — u GET z něj
+  // GitHub umí být nesvůj
+  if (sTelem) h["Content-Type"] = "application/json";
+  return h;
+}
+
+/** Vytáhne z odpovědi GitHubu jeho vlastní vysvětlení, když nějaké má. */
+async function zpravaGitHubu(odpoved) {
+  try {
+    const text = (await odpoved.text()).slice(0, 500);
+    try {
+      const data = JSON.parse(text);
+      return [data.message, data.errors && JSON.stringify(data.errors)]
+        .filter(Boolean).join(" ").slice(0, 220);
+    } catch (e) {
+      return text.replace(/\s+/g, " ").slice(0, 220);
+    }
+  } catch (e) {
+    return "";
+  }
+}
+
 /** Ze suchého čísla od GitHubu udělá větu, podle které se dá jednat. */
-function potizSGitHubem(stav, repo) {
+function potizSGitHubem(stav, repo, zprava) {
+  const dodatek = zprava ? " (GitHub: " + zprava + ")" : "";
   if (stav === 401) {
-    return "GitHub token je neplatný nebo vypršel. V Cloudflare nastavte nový GITHUB_TOKEN.";
+    return "GitHub token je neplatný nebo vypršel. V Cloudflare nastavte nový GITHUB_TOKEN." + dodatek;
   }
   if (stav === 403) {
     return "GitHub tokenu chybí oprávnění k zápisu. Potřebuje „Contents: Read and write\" " +
-           "na repozitář " + repo + ".";
+           "na repozitář " + repo + "." + dodatek;
   }
   if (stav === 404) {
     return "GitHub token nevidí repozitář " + repo + ". Zkontrolujte, že je vybraný " +
-           "v „Repository access\" a že má oprávnění „Contents: Read and write\".";
+           "v „Repository access\" a že má oprávnění „Contents: Read and write\"." + dodatek;
   }
   if (stav === 409 || stav === 422) {
-    return "Obsah webu se mezitím změnil jinde. Načtěte administraci znovu a publikujte znovu.";
+    return "Obsah webu se mezitím změnil jinde. Načtěte administraci znovu a publikujte znovu." + dodatek;
   }
-  return "GitHub odmítl uložení (chyba " + stav + ").";
+  return "GitHub odmítl uložení (chyba " + stav + ")." + dodatek;
 }
 
 /** Text (i s diakritikou) na base64, jak ho GitHub API očekává. */
