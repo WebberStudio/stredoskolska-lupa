@@ -77,16 +77,6 @@ const TYPY_SKOL = {
       Prázdné `youtube` → na profilu je „reportáž připravujeme".
       Škola může mít jen reportáž, jen podcast, nebo obojí.
    ============================================================ */
-/* ============================================================
-   ⏸ SKRYTÉ EPIZODY
-   ------------------------------------------------------------
-   1. díl (Příbram) je od 1. 9. 2026 zveřejněný.
-   Skrytý zůstává 3. díl (Křivoklát) — jeho data čekají
-   v poli `epizoda_skryta`.
-
-   AŽ SE MÁ EPIZODA UKÁZAT: u dané školy smažte řádek
-   `epizoda: null,` a `epizoda_skryta:` přejmenujte na `epizoda:`.
-   ============================================================ */
 const SKOLY = [
   {
     id: "szs-voszs-pribram",
@@ -133,14 +123,13 @@ const SKOLY = [
       "krajinné oblasti. Maturitní obory lesnictví a veterinářství, učební " +
       "obory mechanik lesní techniky, opravář lesnických strojů a truhlář — " +
       "praxe se odehrává v lese, ne za lavicí.",
-    epizoda: null, // podcast dočasně skrytý
-    epizoda_skryta: {
-      cislo: 3,
+    epizoda: {
+      cislo: 2,
       nazev: "Lesnická škola pod Křivoklátem",
       delka: "14:34",
-      datum: "2026-08-22",
+      datum: "2026-09-08",
       popis:
-        "Třetí díl Středoškolské lupy — rozhovor s ředitelkou Střední lesnické " +
+        "Druhý díl Středoškolské lupy — rozhovor s ředitelkou Střední lesnické " +
         "školy a Středního odborného učiliště Křivoklát.",
       youtube: "V2_ANYhcM1c",
       spotify: "",
