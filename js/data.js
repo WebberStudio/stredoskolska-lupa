@@ -117,7 +117,7 @@ const SKOLY = [
     typ: "sos",
     reditel: "Mgr. Alexandra Lochová, MBA",
     web: "https://www.sls-krivoklat.cz",
-    foto: null,
+    foto: "assets/skoly/sls-sou-krivoklat.jpg",
     popis:
       "Lesnická škola přímo pod křivoklátským hradem, uprostřed chráněné " +
       "krajinné oblasti. Maturitní obory lesnictví a veterinářství, učební " +
