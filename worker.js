@@ -763,17 +763,17 @@ function prihlasovaciHtml(stav) {
   function prekresli() {
     var zaklada = rezim !== "prihlaseni";
     $("nadpis").textContent = rezim === "prihlaseni" ? "Přihlášení"
-      : rezim === "obnova" ? "Obnova hesla" : "Nastavte si přístup";
+      : rezim === "obnova" ? "Nový účet nebo nové heslo" : "Nastavte si přístup";
     $("popis").textContent = rezim === "prihlaseni"
       ? "Zadejte e-mail a heslo, kterým spravujete obsah webu."
       : rezim === "obnova"
-        ? "Zadejte e-mail účtu, nové heslo a zakládací klíč z Cloudflare."
+        ? "Zadejte e-mail, heslo a zakládací klíč. Když u toho e-mailu ještě účet není, založí se; jinak mu heslo nastavíme nové."
         : "Zatím tu není žádný účet. Vyberte si e-mail a heslo — uloží se jen otisk hesla, ne heslo samotné.";
     $("pole-heslo2").hidden = !zaklada;
     $("pole-klic").hidden = !zaklada;
     $("heslo").setAttribute("autocomplete", zaklada ? "new-password" : "current-password");
     $("odeslat").textContent = rezim === "prihlaseni" ? "Přihlásit se"
-      : rezim === "obnova" ? "Nastavit nové heslo" : "Vytvořit účet a vstoupit";
+      : rezim === "obnova" ? "Uložit a vstoupit" : "Vytvořit účet a vstoupit";
     $("chyba").hidden = true;
 
     var pozn = $("pozn");
@@ -781,7 +781,7 @@ function prihlasovaciHtml(stav) {
     if (rezim === "prihlaseni") {
       var a = document.createElement("a");
       a.href = "#";
-      a.textContent = "Zapomenuté heslo?";
+      a.textContent = "Nový účet nebo zapomenuté heslo?";
       a.addEventListener("click", function (ev) { ev.preventDefault(); rezim = "obnova"; prekresli(); });
       pozn.appendChild(a);
     } else if (rezim === "obnova") {
