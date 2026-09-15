@@ -40,8 +40,9 @@
   // štítek stavu školy: podcast > reportáž > teprve chystáme
   function stitekObsahu(s, dlouhy) {
     if (s.epizoda) {
+      // bez délky ukážeme číslo dílu — pomlčka na kartě vypadá jako chyba
       return '<span class="badge-time">' +
-        esc(s.epizoda.delka || (dlouhy ? "ep. " + s.epizoda.cislo : "—")) + "</span>";
+        esc(s.epizoda.delka || ((dlouhy ? "ep. " : "Ep. ") + s.epizoda.cislo)) + "</span>";
     }
     if (maReportaz(s)) {
       return '<span class="badge-rep">Reportáž' +
