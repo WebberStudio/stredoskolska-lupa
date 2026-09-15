@@ -260,7 +260,7 @@ const SKOLY = [
     typ: "sou",
     reditel: "Mgr. Josef Mára",
     web: "https://www.sszplana.cz",
-    foto: null,
+    foto: "assets/skoly/ss-zivnostenska-plana.jpg",
     popis: "Živnostenská škola na Tachovsku s učebními obory včetně ošetřovatele. Součástí je i základní škola — malá škola s osobním přístupem.",
     epizoda: {
       cislo: 3,
