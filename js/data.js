@@ -6,7 +6,7 @@
 
    Na webu platí verze publikovaná z administrace (úložiště KV);
    soubor v repozitáři je výchozí stav a záloha.
-   Vygenerováno administrací 2026-09-14.
+   Vygenerováno administrací 2026-09-22.
    ============================================================ */
 
 /* ---------- Nastavení webu ---------- */
@@ -224,9 +224,18 @@ const SKOLY = [
     typ: "gymnazium",
     reditel: "Mgr. Milan Deredimos",
     web: "https://www.goas.cz",
-    foto: null,
+    foto: "assets/skoly/gymnazium-stribro.jpg",
     popis: "Gymnázium a obchodní akademie pod jednou střechou — všeobecné vzdělání i ekonomické obory v menším městě na Tachovsku, kde se všichni navzájem znají.",
-    epizoda: null,
+    epizoda: {
+      cislo: 4,
+      nazev: "Gymnázium a obchodní akademie ve Stříbře",
+      delka: "",
+      datum: "2026-09-22",
+      popis: "Čtvrtý díl Středoškolské lupy — rozhovor s ředitelem Gymnázia a obchodní akademie Stříbro.",
+      youtube: "2nvAVxjduFU",
+      spotify: "",
+      apple: "",
+    },
     reportaz: {
       youtube: "7pwxr-C-Kh4",
       delka: "12:58",
@@ -282,6 +291,14 @@ const SKOLY = [
 
 /* ---------- Blog ---------- */
 const CLANKY = [
+  {
+    id: "dalsi-dil-podcastu-je-pripraven-uz-dnes-v-19-hodin",
+    titulek: "Další díl podcastu je připraven! Už dnes v 19 hodin!",
+    datum: "2026-09-22",
+    autor: "",
+    perex: "Hostem bude ředitel Gymnázia Stříbro",
+    obsah: "<p>Mgr. Milan Deredimos je nejen úspěšným ředitelem Gymnázia Stříbro, ale také člověk, který pro své studenty žije. Vytváří jim úctyhodné zázemí. Člověk, který se vyznačuje lidskostí a vstřícným přístupem. Pod jeho záštitou škola roste a jeho pedagogický tým se skládá z opravdových profesionálů. Společně studenty vedou k úspěchu a celkové uplatnitelnosti na trhu.</p>",
+  },
   {
     id: "uz-zitra-podcast-s-reditelem-ss-zivnostenska-plana",
     titulek: "Už zítra podcast s ředitelem SŠ živnostenská Planá",
