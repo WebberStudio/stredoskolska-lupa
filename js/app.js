@@ -795,7 +795,8 @@
     }
 
     function aplikuj() {
-      const vysledky = filtruj();
+      const vysledky = filtruj()
+  .sort((a, b) => datumObsahu(b).localeCompare(datumObsahu(a)));
       vykresliKarty(grid, vysledky);
       pocetEl.textContent = vysledky.length + " " + sklonujSkoly(vysledky.length) +
         (stav.kraj ? " · " + krajNazev(stav.kraj) : "");
